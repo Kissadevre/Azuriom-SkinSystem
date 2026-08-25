@@ -1,0 +1,16 @@
+{
+    "name": "casanaura/azuriom-skinsystem",
+    "type": "azuriom-plugin",
+    "description": "Upload, preview, and synchronize Minecraft skins from Azuriom.",
+    "autoload": {
+        "psr-4": {
+            "Azuriom\\Plugin\\SkinSystem\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Azuriom\\Plugin\\SkinSystem\\Tests\\": "tests/"
+        }
+    }
+}
+

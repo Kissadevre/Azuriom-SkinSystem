@@ -1,0 +1,19 @@
+{
+    "id": "skinsystem",
+    "name": "SkinSystem",
+    "description": "Upload, preview, and synchronize Minecraft skins from Azuriom.",
+    "version": "0.1.0",
+    "url": "https://github.com/Casanaura/Azuriom-SkinSystem",
+    "authors": [
+        "Kissadere"
+    ],
+    "azuriom_api": "1.2.0",
+    "games": [
+        "minecraft"
+    ],
+    "providers": [
+        "\\Azuriom\\Plugin\\SkinSystem\\Providers\\SkinSystemServiceProvider",
+        "\\Azuriom\\Plugin\\SkinSystem\\Providers\\RouteServiceProvider"
+    ]
+}
+
