@@ -30,6 +30,7 @@ return [
     ],
     'current' => [
         'eyebrow' => 'Skin activa',
+        'tab' => 'Skin actual',
         'title' => 'Skin actual del sitio web',
     ],
     'delete' => [

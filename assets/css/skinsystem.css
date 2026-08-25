@@ -3,6 +3,11 @@
 .skinsystem-status-dot { font-size: .45rem; vertical-align: .2rem; }
 .skinsystem-card { overflow: hidden; border-color: var(--bs-border-color-translucent); border-radius: var(--skinsystem-radius); box-shadow: 0 .5rem 1.5rem rgba(20, 30, 55, .07); }
 .skinsystem-card-header { padding: 1.1rem 1.25rem; border-bottom-color: var(--bs-border-color-translucent); background: var(--bs-body-bg); }
+.skinsystem-tabs-header { padding: 0 1.15rem; border-bottom-color: var(--bs-border-color-translucent); background: var(--bs-body-bg); }
+.skinsystem-tabs { gap: .25rem; margin: 0; border-bottom: 0; }
+.skinsystem-tabs .nav-link { margin: 0; padding: 1rem .85rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; color: var(--bs-secondary-color); font-weight: 600; }
+.skinsystem-tabs .nav-link:hover { border-bottom-color: rgba(var(--bs-primary-rgb), .3); color: var(--bs-body-color); }
+.skinsystem-tabs .nav-link.active { border-bottom-color: var(--bs-primary); background: transparent; color: var(--bs-primary); }
 .skinsystem-eyebrow { display: block; margin-bottom: .25rem; color: var(--bs-primary); font-size: .7rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
 .skinsystem-viewer-tip { color: var(--bs-secondary-color); font-size: .8rem; }
 

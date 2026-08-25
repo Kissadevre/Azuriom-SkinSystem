@@ -87,6 +87,72 @@
             </div>
         @endif
 
+        @if($libraryEnabled)
+            <section class="card skinsystem-card mb-4" id="skin-library">
+                <div class="card-header skinsystem-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                        <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.library.eyebrow') }}</span>
+                        <h2 class="h5 mb-0">{{ trans('skinsystem::messages.library.title') }}</h2>
+                    </div>
+                    <span class="badge rounded-pill text-bg-secondary px-3 py-2">
+                        {{ trans('skinsystem::messages.library.usage', ['count' => $savedSkins->count(), 'limit' => $libraryLimit]) }}
+                    </span>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    @if($savedSkins->isEmpty())
+                        <div class="skinsystem-library-empty">
+                            <i class="bi bi-collection" aria-hidden="true"></i>
+                            <strong>{{ trans('skinsystem::messages.library.empty_title') }}</strong>
+                            <span>{{ trans('skinsystem::messages.library.empty') }}</span>
+                        </div>
+                    @else
+                        <div class="skinsystem-library-grid">
+                            @foreach($savedSkins as $savedSkin)
+                                @php($isActive = $skin && $skin->sha256 === $savedSkin->sha256 && $skin->variant === $savedSkin->variant)
+                                <article class="skinsystem-library-item {{ $isActive ? 'is-active' : '' }}">
+                                    <div class="skinsystem-library-preview">
+                                        <img src="{{ route('skinsystem.library.image', $savedSkin) }}"
+                                             alt="{{ trans('skinsystem::messages.library.preview_alt', ['name' => $savedSkin->name]) }}"
+                                             loading="lazy">
+                                        @if($isActive)
+                                            <span class="badge text-bg-success">
+                                                <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
+                                                {{ trans('skinsystem::messages.library.active') }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="h6 text-truncate mb-1" title="{{ $savedSkin->name }}">{{ $savedSkin->name }}</h3>
+                                        <div class="small text-body-secondary mb-3">
+                                            {{ trans('skinsystem::messages.variants.'.$savedSkin->variant) }}
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <form class="flex-grow-1" action="{{ route('skinsystem.library.activate', $savedSkin) }}" method="POST">
+                                                @csrf
+                                                <button class="btn btn-primary btn-sm w-100" type="submit" @disabled($isActive)>
+                                                    <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>
+                                                    {{ trans($isActive ? 'skinsystem::messages.library.active' : 'skinsystem::messages.actions.activate') }}
+                                                </button>
+                                            </form>
+                                            <button class="btn btn-outline-danger btn-sm"
+                                                    type="button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteSavedSkinModal"
+                                                    data-delete-saved-url="{{ route('skinsystem.library.destroy', $savedSkin) }}"
+                                                    data-delete-saved-name="{{ $savedSkin->name }}"
+                                                    aria-label="{{ trans('skinsystem::messages.actions.remove_saved') }}">
+                                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </section>
+        @endif
+
         <div class="row g-4 align-items-start">
             <div class="col-xl-7 col-lg-6">
                 <section class="card skinsystem-card skinsystem-viewer-card">
@@ -131,12 +197,42 @@
             </div>
 
             <div class="col-xl-5 col-lg-6">
-                <section class="card skinsystem-card mb-4">
-                    <div class="card-header skinsystem-card-header">
-                        <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.upload.eyebrow') }}</span>
-                        <h2 class="h5 mb-0">{{ trans('skinsystem::messages.upload.title') }}</h2>
+                <section class="card skinsystem-card">
+                    <div class="card-header skinsystem-tabs-header">
+                        <ul class="nav nav-tabs card-header-tabs skinsystem-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active"
+                                        id="upload-skin-tab"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#upload-skin-pane"
+                                        type="button"
+                                        role="tab"
+                                        aria-controls="upload-skin-pane"
+                                        aria-selected="true">
+                                    <i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i>
+                                    {{ trans('skinsystem::messages.upload.title') }}
+                                </button>
+                            </li>
+                            @if($skin)
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link"
+                                            id="current-skin-tab"
+                                            data-bs-toggle="tab"
+                                            data-bs-target="#current-skin-pane"
+                                            type="button"
+                                            role="tab"
+                                            aria-controls="current-skin-pane"
+                                            aria-selected="false">
+                                        <i class="bi bi-person-check me-1" aria-hidden="true"></i>
+                                        {{ trans('skinsystem::messages.current.tab') }}
+                                    </button>
+                                </li>
+                            @endif
+                        </ul>
                     </div>
-                    <div class="card-body p-3 p-md-4">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="upload-skin-pane" role="tabpanel" aria-labelledby="upload-skin-tab" tabindex="0">
+                            <div class="card-body p-3 p-md-4">
                         <form action="{{ route('skinsystem.skins.store') }}"
                               method="POST"
                               enctype="multipart/form-data"
@@ -313,141 +409,78 @@
                                     </div>
                                 </div>
                             @endif
-                        </form>
+                                </form>
+                            </div>
+                        </div>
+
+                        @if($skin)
+                            <div class="tab-pane fade" id="current-skin-pane" role="tabpanel" aria-labelledby="current-skin-tab" tabindex="0">
+                                <div class="card-body p-3 p-md-4 skinsystem-skin-meta">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                        <div>
+                                            <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.current.eyebrow') }}</span>
+                                            <h2 class="h5 mb-0">{{ trans('skinsystem::messages.current.title') }}</h2>
+                                        </div>
+                                        <span class="badge rounded-pill text-bg-{{ $syncBadgeClass }}">
+                                            {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
+                                        </span>
+                                    </div>
+                                    <div class="skinsystem-meta-grid mb-3">
+                                        <div>
+                                            <span>{{ trans('skinsystem::messages.fields.variant') }}</span>
+                                            <strong>{{ trans('skinsystem::messages.variants.'.$skin->variant) }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>{{ trans('skinsystem::messages.fields.revision') }}</span>
+                                            <strong>#{{ $skin->revision }}</strong>
+                                        </div>
+                                        @if($skin->variant === \Azuriom\Plugin\SkinSystem\Models\Skin::VARIANT_AUTO)
+                                            <div>
+                                                <span>{{ trans('skinsystem::messages.fields.resolved_variant') }}</span>
+                                                <strong>{{ trans('skinsystem::messages.variants.'.$skin->resolved_variant) }}</strong>
+                                            </div>
+                                        @endif
+                                        @if($syncState?->dispatched_at)
+                                            <div>
+                                                <span>{{ trans('skinsystem::messages.fields.last_dispatched_at') }}</span>
+                                                <strong>{{ format_date($syncState->dispatched_at, true) }}</strong>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    @if($syncState?->error)
+                                        <div class="alert alert-{{ $syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED ? 'danger' : 'warning' }} py-2 small">
+                                            {{ trans('skinsystem::messages.sync.errors.'.$syncState->error) }}
+                                        </div>
+                                    @endif
+
+                                    <p class="small text-body-secondary">{{ trans('skinsystem::messages.sync.status_help') }}</p>
+
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form action="{{ route('skinsystem.skins.sync') }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-primary">
+                                                <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
+                                                {{ trans('skinsystem::messages.actions.sync') }}
+                                            </button>
+                                        </form>
+
+                                        <button type="button"
+                                                class="btn btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteSkinModal">
+                                            <i class="bi bi-trash me-1" aria-hidden="true"></i>
+                                            {{ trans('skinsystem::messages.actions.delete') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </section>
-
-                @if($skin)
-                    <section class="card skinsystem-card">
-                        <div class="card-header skinsystem-card-header d-flex align-items-center justify-content-between gap-3">
-                            <div>
-                                <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.current.eyebrow') }}</span>
-                                <h2 class="h5 mb-0">{{ trans('skinsystem::messages.current.title') }}</h2>
-                            </div>
-                            <span class="badge rounded-pill text-bg-{{ $syncBadgeClass }}">
-                                {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
-                            </span>
-                        </div>
-                        <div class="card-body p-3 p-md-4 skinsystem-skin-meta">
-                            <div class="skinsystem-meta-grid mb-3">
-                                <div>
-                                    <span>{{ trans('skinsystem::messages.fields.variant') }}</span>
-                                    <strong>{{ trans('skinsystem::messages.variants.'.$skin->variant) }}</strong>
-                                </div>
-                                <div>
-                                    <span>{{ trans('skinsystem::messages.fields.revision') }}</span>
-                                    <strong>#{{ $skin->revision }}</strong>
-                                </div>
-                                @if($skin->variant === \Azuriom\Plugin\SkinSystem\Models\Skin::VARIANT_AUTO)
-                                    <div>
-                                        <span>{{ trans('skinsystem::messages.fields.resolved_variant') }}</span>
-                                        <strong>{{ trans('skinsystem::messages.variants.'.$skin->resolved_variant) }}</strong>
-                                    </div>
-                                @endif
-                                @if($syncState?->dispatched_at)
-                                    <div>
-                                        <span>{{ trans('skinsystem::messages.fields.last_dispatched_at') }}</span>
-                                        <strong>{{ format_date($syncState->dispatched_at, true) }}</strong>
-                                    </div>
-                                @endif
-                            </div>
-
-                            @if($syncState?->error)
-                                <div class="alert alert-{{ $syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED ? 'danger' : 'warning' }} py-2 small">
-                                    {{ trans('skinsystem::messages.sync.errors.'.$syncState->error) }}
-                                </div>
-                            @endif
-
-                            <p class="small text-body-secondary">{{ trans('skinsystem::messages.sync.status_help') }}</p>
-
-                            <div class="d-flex flex-wrap gap-2">
-                                <form action="{{ route('skinsystem.skins.sync') }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn btn-outline-primary">
-                                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
-                                        {{ trans('skinsystem::messages.actions.sync') }}
-                                    </button>
-                                </form>
-
-                                <button type="button"
-                                        class="btn btn-outline-danger"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#deleteSkinModal">
-                                    <i class="bi bi-trash me-1" aria-hidden="true"></i>
-                                    {{ trans('skinsystem::messages.actions.delete') }}
-                                </button>
-                            </div>
-                        </div>
-                    </section>
-                @endif
             </div>
         </div>
 
-        @if($libraryEnabled)
-            <section class="card skinsystem-card mt-4" id="skin-library">
-                <div class="card-header skinsystem-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    <div>
-                        <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.library.eyebrow') }}</span>
-                        <h2 class="h5 mb-0">{{ trans('skinsystem::messages.library.title') }}</h2>
-                    </div>
-                    <span class="badge rounded-pill text-bg-secondary px-3 py-2">
-                        {{ trans('skinsystem::messages.library.usage', ['count' => $savedSkins->count(), 'limit' => $libraryLimit]) }}
-                    </span>
-                </div>
-                <div class="card-body p-3 p-md-4">
-                    @if($savedSkins->isEmpty())
-                        <div class="skinsystem-library-empty">
-                            <i class="bi bi-collection" aria-hidden="true"></i>
-                            <strong>{{ trans('skinsystem::messages.library.empty_title') }}</strong>
-                            <span>{{ trans('skinsystem::messages.library.empty') }}</span>
-                        </div>
-                    @else
-                        <div class="skinsystem-library-grid">
-                            @foreach($savedSkins as $savedSkin)
-                                @php($isActive = $skin && $skin->sha256 === $savedSkin->sha256 && $skin->variant === $savedSkin->variant)
-                                <article class="skinsystem-library-item {{ $isActive ? 'is-active' : '' }}">
-                                    <div class="skinsystem-library-preview">
-                                        <img src="{{ route('skinsystem.library.image', $savedSkin) }}"
-                                             alt="{{ trans('skinsystem::messages.library.preview_alt', ['name' => $savedSkin->name]) }}"
-                                             loading="lazy">
-                                        @if($isActive)
-                                            <span class="badge text-bg-success">
-                                                <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
-                                                {{ trans('skinsystem::messages.library.active') }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <div class="p-3">
-                                        <h3 class="h6 text-truncate mb-1" title="{{ $savedSkin->name }}">{{ $savedSkin->name }}</h3>
-                                        <div class="small text-body-secondary mb-3">
-                                            {{ trans('skinsystem::messages.variants.'.$savedSkin->variant) }}
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <form class="flex-grow-1" action="{{ route('skinsystem.library.activate', $savedSkin) }}" method="POST">
-                                                @csrf
-                                                <button class="btn btn-primary btn-sm w-100" type="submit" @disabled($isActive)>
-                                                    <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>
-                                                    {{ trans($isActive ? 'skinsystem::messages.library.active' : 'skinsystem::messages.actions.activate') }}
-                                                </button>
-                                            </form>
-                                            <button class="btn btn-outline-danger btn-sm"
-                                                    type="button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteSavedSkinModal"
-                                                    data-delete-saved-url="{{ route('skinsystem.library.destroy', $savedSkin) }}"
-                                                    data-delete-saved-name="{{ $savedSkin->name }}"
-                                                    aria-label="{{ trans('skinsystem::messages.actions.remove_saved') }}">
-                                                <i class="bi bi-trash" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </article>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </section>
-        @endif
     </div>
 
     @if($libraryEnabled && $savedSkins->isNotEmpty())

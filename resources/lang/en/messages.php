@@ -30,6 +30,7 @@ return [
     ],
     'current' => [
         'eyebrow' => 'Active skin',
+        'tab' => 'Current skin',
         'title' => 'Current website skin',
     ],
     'delete' => [
