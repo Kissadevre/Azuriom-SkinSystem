@@ -46,10 +46,6 @@
                         <i class="bi bi-circle-fill me-1 skinsystem-status-dot" aria-hidden="true"></i>
                         {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
                     </span>
-                    <a href="{{ $skin->publicUrl() }}" class="btn btn-outline-secondary" download="skin.png">
-                        <i class="bi bi-download me-1" aria-hidden="true"></i>
-                        {{ trans('skinsystem::messages.actions.download') }}
-                    </a>
                 </div>
             @endif
         </div>
@@ -457,6 +453,11 @@
                                     <p class="small text-body-secondary">{{ trans('skinsystem::messages.sync.status_help') }}</p>
 
                                     <div class="d-flex flex-wrap gap-2">
+                                        <a href="{{ $skin->publicUrl() }}" class="btn btn-outline-secondary" download="skin.png">
+                                            <i class="bi bi-download me-1" aria-hidden="true"></i>
+                                            {{ trans('skinsystem::messages.actions.download') }}
+                                        </a>
+
                                         <form action="{{ route('skinsystem.skins.sync') }}" method="POST">
                                             @csrf
                                             <button type="submit" class="btn btn-outline-primary">
