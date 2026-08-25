@@ -64,16 +64,21 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
     /**
      * Return the plugin entry for the administration navigation.
      *
-     * @return array<string, array<string, string>>
+     * @return array<string, array<string, mixed>>
      */
     protected function adminNavigation(): array
     {
         return [
             'skinsystem' => [
                 'name' => trans('skinsystem::admin.title'),
+                'type' => 'dropdown',
                 'icon' => 'bi bi-person-bounding-box',
                 'permission' => 'skinsystem.admin',
-                'route' => 'skinsystem.admin.index',
+                'route' => 'skinsystem.admin.*',
+                'items' => [
+                    'skinsystem.admin.index' => trans('skinsystem::admin.nav.settings'),
+                    'skinsystem.admin.information' => trans('skinsystem::admin.nav.information'),
+                ],
             ],
         ];
     }

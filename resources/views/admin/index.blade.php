@@ -1,18 +1,12 @@
 @extends('admin.layouts.admin')
 
-@section('title', trans('skinsystem::admin.title'))
+@section('title', trans('skinsystem::admin.nav.settings'))
 
 @section('content')
-    <div class="d-flex align-items-center gap-3 mb-4">
-        <span class="d-flex align-items-center justify-content-center rounded bg-primary bg-opacity-10 text-primary fs-3"
-              style="width: 3rem; height: 3rem;">
-            <i class="bi bi-person-bounding-box" aria-hidden="true"></i>
-        </span>
-        <div>
-            <h1 class="h3 mb-1">{{ trans('skinsystem::admin.title') }}</h1>
-            <p class="text-muted mb-0">{{ trans('skinsystem::admin.description') }}</p>
-        </div>
-    </div>
+    @include('skinsystem::admin.partials.header', [
+        'title' => trans('skinsystem::admin.nav.settings'),
+        'description' => trans('skinsystem::admin.settings.description'),
+    ])
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
@@ -148,27 +142,4 @@
         </div>
     </form>
 
-    <div class="card">
-        <div class="card-header">
-            <strong><i class="bi bi-list-check me-2" aria-hidden="true"></i>{{ trans('skinsystem::admin.requirements.title') }}</strong>
-        </div>
-        <div class="card-body">
-            <ol class="mb-3">
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.skinsrestorer') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.bridge') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.public_url') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.uuid') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.url_allowlist') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.skin_api') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.proxy') }}</li>
-                <li class="mb-2">{{ trans('skinsystem::admin.requirements.cache_lock') }}</li>
-                <li>{{ trans('skinsystem::admin.requirements.scheduler') }}</li>
-            </ol>
-
-            <div class="alert alert-info mb-0" role="note">
-                <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
-                {{ trans('skinsystem::admin.requirements.submitted_semantics') }}
-            </div>
-        </div>
-    </div>
 @endsection

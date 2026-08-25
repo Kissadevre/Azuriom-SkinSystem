@@ -39,6 +39,14 @@ class AdminController extends Controller
     }
 
     /**
+     * Show the requirements and operational guidance for synchronization.
+     */
+    public function information()
+    {
+        return view('skinsystem::admin.information');
+    }
+
+    /**
      * Save the authoritative server synchronization settings.
      */
     public function update(UpdateSettingsRequest $request): RedirectResponse

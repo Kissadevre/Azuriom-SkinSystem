@@ -4,6 +4,13 @@ return [
     'title' => 'SkinSystem',
     'description' => 'Conecta las skins subidas en Azuriom con un servidor autoritativo de SkinsRestorer.',
     'updated' => 'La configuración de sincronización de SkinSystem se guardó correctamente.',
+    'nav' => [
+        'settings' => 'Ajustes',
+        'information' => 'Información',
+    ],
+    'information' => [
+        'description' => 'Requisitos e instrucciones de operación para conectar SkinSystem con SkinsRestorer.',
+    ],
     'stats' => [
         'total' => 'Skins activas en el sitio',
         'submitted' => 'Última operación enviada',
@@ -11,6 +18,7 @@ return [
     ],
     'settings' => [
         'title' => 'Configuración de sincronización',
+        'description' => 'Configura la sincronización, el servidor de Minecraft autoritativo y las bibliotecas personales.',
         'enabled' => 'Activar sincronización automática',
         'enabled_help' => 'Envía un comando de SkinsRestorer después de cada carga modificada y limpia todos los destinos registrados al eliminar una skin.',
         'server' => 'Servidor de Minecraft autoritativo',
@@ -29,7 +37,7 @@ return [
     'requirements' => [
         'title' => 'Antes de activar la sincronización',
         'skinsrestorer' => 'Instala y configura SkinsRestorer en el servidor que administra los datos de skins de los jugadores.',
-        'bridge' => 'Conecta ese servidor con Azuriom mediante AzLink o RCON y selecciónalo arriba.',
+        'bridge' => 'Conecta ese servidor con Azuriom mediante AzLink o RCON y selecciónalo desde el submenú Ajustes.',
         'public_url' => 'Publica Azuriom mediante una URL HTTPS accesible desde Internet; MineSkin no puede obtener archivos desde localhost o direcciones privadas.',
         'uuid' => 'Asegúrate de que cada cuenta tenga exactamente el UUID de Minecraft utilizado por el servidor. Se admiten los UUID offline generados por Azuriom.',
         'url_allowlist' => 'Si SkinsRestorer tiene activo commands.restrictSkinUrls, agrega el origen público de Azuriom a commands.restrictSkinUrls.list.',
