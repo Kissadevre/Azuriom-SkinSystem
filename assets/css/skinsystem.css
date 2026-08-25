@@ -51,6 +51,9 @@
 .skinsystem-meta-grid span { margin-bottom: .2rem; color: var(--bs-secondary-color); font-size: .72rem; }
 .skinsystem-meta-grid strong { overflow-wrap: anywhere; font-size: .85rem; }
 .skinsystem-skin-meta code { overflow-wrap: anywhere; }
+.skinsystem-current-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.skinsystem-current-actions > .btn { display: inline-flex; align-items: center; justify-content: center; }
+.skinsystem-current-primary { grid-column: 1 / -1; }
 .skinsystem-library-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
 .skinsystem-library-item { overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: .85rem; background: var(--bs-body-bg); transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
 .skinsystem-library-item:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(20, 30, 55, .08); }
@@ -88,4 +91,9 @@
     .skinsystem-meta-grid { grid-template-columns: 1fr; }
     .skinsystem-upload-actions { grid-template-columns: 1fr; }
     .skinsystem-library-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 374.98px) {
+    .skinsystem-current-actions { grid-template-columns: 1fr; }
+    .skinsystem-current-primary { grid-column: auto; }
 }

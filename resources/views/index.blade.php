@@ -452,19 +452,19 @@
 
                                     <p class="small text-body-secondary">{{ trans('skinsystem::messages.sync.status_help') }}</p>
 
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <a href="{{ $skin->publicUrl() }}" class="btn btn-outline-secondary" download="skin.png">
-                                            <i class="bi bi-download me-1" aria-hidden="true"></i>
-                                            {{ trans('skinsystem::messages.actions.download') }}
-                                        </a>
-
-                                        <form action="{{ route('skinsystem.skins.sync') }}" method="POST">
+                                    <div class="skinsystem-current-actions">
+                                        <form class="skinsystem-current-primary" action="{{ route('skinsystem.skins.sync') }}" method="POST">
                                             @csrf
-                                            <button type="submit" class="btn btn-outline-primary">
+                                            <button type="submit" class="btn btn-primary w-100">
                                                 <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
                                                 {{ trans('skinsystem::messages.actions.sync') }}
                                             </button>
                                         </form>
+
+                                        <a href="{{ $skin->publicUrl() }}" class="btn btn-outline-secondary" download="skin.png">
+                                            <i class="bi bi-download me-1" aria-hidden="true"></i>
+                                            {{ trans('skinsystem::messages.actions.download') }}
+                                        </a>
 
                                         <button type="button"
                                                 class="btn btn-outline-danger"
