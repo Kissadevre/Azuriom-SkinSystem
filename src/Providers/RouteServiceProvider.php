@@ -3,6 +3,7 @@
 namespace Azuriom\Plugin\SkinSystem\Providers;
 
 use Azuriom\Extensions\Plugin\BaseRouteServiceProvider;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 class RouteServiceProvider extends BaseRouteServiceProvider
@@ -22,10 +23,9 @@ class RouteServiceProvider extends BaseRouteServiceProvider
             ->name($this->plugin->id.'.admin.')
             ->group(plugin_path($this->plugin->id.'/routes/admin.php'));
 
-        Route::middleware('api')
+        Route::middleware([SubstituteBindings::class, 'throttle:skinsystem.images'])
             ->prefix('api/'.$this->plugin->id)
             ->name($this->plugin->id.'.api.')
             ->group(plugin_path($this->plugin->id.'/routes/api.php'));
     }
 }
-

@@ -1,0 +1,55 @@
+.skinsystem-viewer-shell {
+    position: relative;
+    display: flex;
+    min-height: 460px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background:
+        radial-gradient(circle at 50% 30%, rgba(var(--bs-primary-rgb), 0.14), transparent 55%),
+        var(--bs-tertiary-bg);
+}
+
+.skinsystem-viewer-canvas {
+    display: block;
+    max-width: 100%;
+    cursor: grab;
+}
+
+.skinsystem-viewer-canvas:active {
+    cursor: grabbing;
+}
+
+.skinsystem-viewer-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--bs-secondary-color);
+    text-align: center;
+    pointer-events: none;
+}
+
+.skinsystem-viewer-placeholder i {
+    font-size: 3rem;
+}
+
+.skinsystem-viewer-placeholder[hidden] {
+    display: none;
+}
+
+.skinsystem-skin-meta code {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+    .skinsystem-viewer-shell {
+        min-height: 390px;
+    }
+}

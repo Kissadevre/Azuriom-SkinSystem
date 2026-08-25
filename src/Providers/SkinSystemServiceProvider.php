@@ -4,6 +4,9 @@ namespace Azuriom\Plugin\SkinSystem\Providers;
 
 use Azuriom\Extensions\Plugin\BasePluginServiceProvider;
 use Azuriom\Models\Permission;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class SkinSystemServiceProvider extends BasePluginServiceProvider
 {
@@ -18,6 +21,10 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
         $this->registerRouteDescriptions();
         $this->registerAdminNavigation();
         $this->registerUserNavigation();
+
+        RateLimiter::for('skinsystem.images', function (Request $request) {
+            return Limit::perMinute(300)->by($request->ip());
+        });
 
         Permission::registerPermissions([
             'skinsystem.skin' => 'skinsystem::admin.permissions.skin',
@@ -71,4 +78,3 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
         ];
     }
 }
-
