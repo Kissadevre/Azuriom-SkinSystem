@@ -2,8 +2,11 @@
 
 namespace Azuriom\Plugin\SkinSystem\Services;
 
+use Azuriom\Models\ServerCommand;
 use Azuriom\Models\User;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
+use Azuriom\Plugin\SkinSystem\Models\SkinRevision;
+use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,14 +19,15 @@ class ManageSkin
     public function __construct(
         private readonly SkinProcessor $processor,
         private readonly SkinStorage $storage,
-    ) {
-    }
+        private readonly SkinSystemSettings $settings,
+        private readonly SkinsRestorerCommandBuilder $commands,
+        private readonly SkinSyncTargetRegistry $targets,
+    ) {}
 
     /**
      * Store the normalized skin and make it the user's current revision.
      *
      * @return array{skin: Skin, changed: bool}
-     *
      */
     public function store(User $user, UploadedFile $file, string $variant): array
     {
@@ -50,6 +54,11 @@ class ManageSkin
             // shared lock target before the unique skin row has been created.
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
+            $previousState = SkinSyncState::query()
+                ->where('user_id', $user->getKey())
+                ->lockForUpdate()
+                ->first();
+
             $skin = Skin::query()
                 ->where('user_id', $user->getKey())
                 ->first();
@@ -62,9 +71,16 @@ class ManageSkin
             }
 
             if ($skin === null) {
+                $lastRevision = max(
+                    (int) SkinRevision::query()
+                        ->where('user_id', $user->getKey())
+                        ->max('revision'),
+                    (int) $previousState?->skin_revision,
+                );
+
                 $skin = new Skin([
                     'user_id' => $user->getKey(),
-                    'revision' => 1,
+                    'revision' => $lastRevision + 1,
                 ]);
             } else {
                 $skin->revision++;
@@ -77,24 +93,126 @@ class ManageSkin
                 'resolved_variant' => $resolvedVariant,
             ])->save();
 
+            SkinRevision::query()->create([
+                'user_id' => $user->getKey(),
+                'revision' => $skin->revision,
+                'file' => $skin->file,
+                'sha256' => $skin->sha256,
+                'resolved_variant' => $skin->resolved_variant,
+            ]);
+
+            if ($previousState !== null) {
+                $this->targets->rememberPotential(
+                    (int) $user->getKey(),
+                    $previousState->target_uuid,
+                    $previousState->target_server_id,
+                );
+            }
+
+            $this->forgetQueuedCommand($user, $previousState);
+
+            $targetUuid = $this->commands->canonicalUuid($user->game_id);
+            $targetServerId = $this->settings->serverId();
+
+            $this->targets->activate(
+                (int) $user->getKey(),
+                $targetUuid,
+                $targetServerId,
+            );
+
+            SkinSyncState::query()->updateOrCreate(
+                ['user_id' => $user->getKey()],
+                [
+                    'action' => SkinSyncState::ACTION_SET,
+                    'skin_revision' => $skin->revision,
+                    'status' => SkinSyncState::STATUS_PENDING,
+                    'target_uuid' => $targetUuid,
+                    'target_server_id' => $targetServerId,
+                    'queued_command_id' => null,
+                    'dispatched_at' => null,
+                    'error' => null,
+                ],
+            );
+
             return ['skin' => $skin, 'changed' => true];
         }, self::TRANSACTION_ATTEMPTS);
     }
 
     /**
-     * Remove the user's active skin record.
+     * Remove the user's active skin and persist a recoverable clear operation.
      *
      * Immutable blobs are retained temporarily so a queued server command never
      * resolves to different bytes or a premature 404.
      */
-    public function delete(User $user): bool
+    public function delete(User $user): ?SkinSyncState
     {
         return DB::transaction(function () use ($user) {
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-            return (bool) Skin::query()
+            $skin = Skin::query()
                 ->where('user_id', $user->getKey())
-                ->delete();
+                ->first();
+
+            if ($skin === null) {
+                return null;
+            }
+
+            $previousState = SkinSyncState::query()
+                ->where('user_id', $user->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            $this->forgetQueuedCommand($user, $previousState);
+
+            $targetUuid = $previousState?->target_uuid
+                ?? $this->commands->canonicalUuid($user->game_id);
+            $targetServerId = $previousState?->target_server_id
+                ?? $this->settings->serverId();
+
+            $this->targets->beginClear(
+                (int) $user->getKey(),
+                $skin->revision,
+                $targetUuid,
+                $targetServerId,
+            );
+
+            $state = SkinSyncState::query()->updateOrCreate(
+                ['user_id' => $user->getKey()],
+                [
+                    'action' => SkinSyncState::ACTION_CLEAR,
+                    'skin_revision' => $skin->revision,
+                    'status' => SkinSyncState::STATUS_PENDING,
+                    'target_uuid' => $targetUuid,
+                    'target_server_id' => $targetServerId,
+                    'queued_command_id' => null,
+                    'dispatched_at' => null,
+                    'error' => null,
+                ],
+            );
+
+            $skin->delete();
+
+            return $state;
         }, self::TRANSACTION_ATTEMPTS);
+    }
+
+    private function forgetQueuedCommand(User $user, ?SkinSyncState $state = null): void
+    {
+        $state ??= SkinSyncState::query()
+            ->where('user_id', $user->getKey())
+            ->first();
+
+        if ($state?->queued_command_id === null) {
+            return;
+        }
+
+        ServerCommand::query()
+            ->whereKey($state->queued_command_id)
+            ->where('user_id', $user->getKey())
+            ->when(
+                $state->target_server_id !== null,
+                fn ($query) => $query->where('server_id', $state->target_server_id),
+            )
+            ->delete();
     }
 }

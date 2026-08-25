@@ -77,10 +77,12 @@ class Skin extends Model
      */
     public function publicUrl(): string
     {
-        return route('skinsystem.api.skins.show', [
+        $path = route('skinsystem.api.skins.show', [
             'user' => $this->user_id,
             'revision' => $this->revision,
             'hash' => $this->sha256,
-        ]);
+        ], false);
+
+        return rtrim((string) config('app.url'), '/').$path;
     }
 }

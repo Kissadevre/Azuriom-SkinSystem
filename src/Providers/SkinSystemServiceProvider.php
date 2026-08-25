@@ -4,7 +4,9 @@ namespace Azuriom\Plugin\SkinSystem\Providers;
 
 use Azuriom\Extensions\Plugin\BasePluginServiceProvider;
 use Azuriom\Models\Permission;
+use Azuriom\Plugin\SkinSystem\Commands\CleanupSkinRevisions;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -22,6 +24,12 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
         $this->registerAdminNavigation();
         $this->registerUserNavigation();
 
+        if (method_exists($this, 'registerSchedule')) {
+            $this->registerSchedule();
+        }
+
+        $this->commands(CleanupSkinRevisions::class);
+
         RateLimiter::for('skinsystem.images', function (Request $request) {
             return Limit::perMinute(300)->by($request->ip());
         });
@@ -30,6 +38,14 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
             'skinsystem.skin' => 'skinsystem::admin.permissions.skin',
             'skinsystem.admin' => 'skinsystem::admin.permissions.admin',
         ]);
+    }
+
+    /**
+     * Remove expired immutable revisions and orphaned PNG blobs every day.
+     */
+    protected function schedule(Schedule $schedule): void
+    {
+        $schedule->command('skinsystem:cleanup')->daily()->withoutOverlapping(15);
     }
 
     /**

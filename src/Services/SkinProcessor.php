@@ -110,7 +110,7 @@ class SkinProcessor
     }
 
     /**
-     * @param array<int, array{int, int, int, int}> $areas
+     * @param  array<int, array{int, int, int, int}>  $areas
      */
     private function areasHaveColor(\GdImage $image, array $areas, int $red, int $green, int $blue): bool
     {

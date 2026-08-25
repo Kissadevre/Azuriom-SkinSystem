@@ -9,5 +9,8 @@ Route::middleware(['auth', 'can:skinsystem.skin'])->group(function () {
     Route::post('/skin', [SkinController::class, 'store'])
         ->middleware('throttle:6,1,skinsystem-upload')
         ->name('skins.store');
+    Route::post('/skin/sync', [SkinController::class, 'sync'])
+        ->middleware('throttle:3,1,skinsystem-sync')
+        ->name('skins.sync');
     Route::delete('/skin', [SkinController::class, 'destroy'])->name('skins.destroy');
 });

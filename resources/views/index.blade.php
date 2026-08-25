@@ -12,6 +12,17 @@
 @endpush
 
 @section('content')
+    @php
+        $syncStatus = $syncState?->status ?? \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_PENDING;
+        $syncBadgeClass = match($syncStatus) {
+            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_SUBMITTED => 'success',
+            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED => 'danger',
+            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_UNCERTAIN => 'warning',
+            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_PENDING => 'info',
+            default => 'secondary',
+        };
+    @endphp
+
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <h1 class="mb-1">{{ trans('skinsystem::messages.title') }}</h1>
@@ -24,6 +35,38 @@
             </a>
         @endif
     </div>
+
+    @if(!$skin && $syncState?->action === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::ACTION_CLEAR)
+        <div class="alert alert-{{ $syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED ? 'danger' : ($syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_SUBMITTED ? 'success' : 'warning') }} mb-4">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <strong>{{ trans('skinsystem::messages.sync.clear_state_title') }}</strong>
+                        <span class="badge text-bg-{{ $syncBadgeClass }}">
+                            {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
+                        </span>
+                    </div>
+                    <div>{{ trans('skinsystem::messages.sync.clear_state_help') }}</div>
+                    @if($syncState->error)
+                        <div class="mt-1">{{ trans('skinsystem::messages.sync.errors.'.$syncState->error) }}</div>
+                    @endif
+                    @if($syncState->dispatched_at)
+                        <small class="d-block mt-1">
+                            {{ trans('skinsystem::messages.fields.last_dispatched_at') }}:
+                            {{ format_date($syncState->dispatched_at, true) }}
+                        </small>
+                    @endif
+                </div>
+
+                <form action="{{ route('skinsystem.skins.sync') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-repeat"></i> {{ trans('skinsystem::messages.actions.sync') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
 
     <div class="row g-4">
         <div class="col-lg-6">
@@ -116,13 +159,42 @@
                             <dt class="col-sm-4">{{ trans('skinsystem::messages.fields.revision') }}</dt>
                             <dd class="col-sm-8">{{ $skin->revision }}</dd>
 
+                            <dt class="col-sm-4">{{ trans('skinsystem::messages.fields.sync_status') }}</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge text-bg-{{ $syncBadgeClass }}">
+                                    {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
+                                </span>
+                            </dd>
+
+                            @if($syncState?->dispatched_at)
+                                <dt class="col-sm-4">{{ trans('skinsystem::messages.fields.last_dispatched_at') }}</dt>
+                                <dd class="col-sm-8">{{ format_date($syncState->dispatched_at, true) }}</dd>
+                            @endif
+
                             <dt class="col-sm-4">SHA-256</dt>
                             <dd class="col-sm-8"><code>{{ $skin->sha256 }}</code></dd>
                         </dl>
 
-                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSkinModal">
-                            <i class="bi bi-trash"></i> {{ trans('skinsystem::messages.actions.delete') }}
-                        </button>
+                        @if($syncState?->error)
+                            <div class="alert alert-{{ $syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED ? 'danger' : 'warning' }} py-2">
+                                {{ trans('skinsystem::messages.sync.errors.'.$syncState->error) }}
+                            </div>
+                        @endif
+
+                        <p class="small text-muted">{{ trans('skinsystem::messages.sync.status_help') }}</p>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <form action="{{ route('skinsystem.skins.sync') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-repeat"></i> {{ trans('skinsystem::messages.actions.sync') }}
+                                </button>
+                            </form>
+
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSkinModal">
+                                <i class="bi bi-trash"></i> {{ trans('skinsystem::messages.actions.delete') }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             @endif

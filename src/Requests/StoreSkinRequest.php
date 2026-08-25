@@ -31,7 +31,7 @@ class StoreSkinRequest extends FormRequest
                 'file',
                 'max:3072',
                 'mimes:png',
-                new MinecraftSkin(),
+                new MinecraftSkin,
             ],
             'variant' => [
                 'required',
