@@ -37,6 +37,7 @@ class StoreSkinRequest extends FormRequest
                 'required',
                 Rule::in(Skin::variants()),
             ],
+            'name' => ['nullable', 'string', 'max:40'],
         ];
     }
 }

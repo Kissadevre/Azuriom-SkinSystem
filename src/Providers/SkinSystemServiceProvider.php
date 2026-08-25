@@ -36,6 +36,7 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
 
         Permission::registerPermissions([
             'skinsystem.skin' => 'skinsystem::admin.permissions.skin',
+            'skinsystem.library' => 'skinsystem::admin.permissions.library',
             'skinsystem.admin' => 'skinsystem::admin.permissions.admin',
         ]);
     }

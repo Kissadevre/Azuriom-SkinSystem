@@ -28,6 +28,7 @@ class AdminController extends Controller
             'servers' => $settings->availableServers(),
             'syncEnabled' => $settings->enabled(),
             'serverId' => $settings->serverId(),
+            'libraryLimit' => $settings->libraryLimit(),
             'totalSkins' => Skin::query()->count(),
             'submittedSkins' => (int) $statusCounts->get(SkinSyncState::STATUS_SUBMITTED, 0),
             'attentionSkins' => (int) $statusCounts->get(SkinSyncState::STATUS_FAILED, 0)
@@ -47,6 +48,7 @@ class AdminController extends Controller
         Setting::updateSettings([
             SkinSystemSettings::ENABLED_KEY => $request->boolean('sync_enabled'),
             SkinSystemSettings::SERVER_KEY => isset($data['server_id']) ? (int) $data['server_id'] : null,
+            SkinSystemSettings::LIBRARY_LIMIT_KEY => (int) $data['library_limit'],
         ]);
 
         return back()->with('success', trans('skinsystem::admin.updated'));

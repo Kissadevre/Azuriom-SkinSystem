@@ -13,4 +13,10 @@ Route::middleware(['auth', 'can:skinsystem.skin'])->group(function () {
         ->middleware('throttle:3,1,skinsystem-sync')
         ->name('skins.sync');
     Route::delete('/skin', [SkinController::class, 'destroy'])->name('skins.destroy');
+
+    Route::middleware('can:skinsystem.library')->prefix('/library')->name('library.')->group(function () {
+        Route::post('/{savedSkin}/activate', [SkinController::class, 'activateSaved'])->name('activate');
+        Route::delete('/{savedSkin}', [SkinController::class, 'destroySaved'])->name('destroy');
+        Route::get('/{savedSkin}/image', [SkinController::class, 'savedImage'])->name('image');
+    });
 });

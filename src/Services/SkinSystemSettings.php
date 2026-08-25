@@ -14,6 +14,12 @@ class SkinSystemSettings
 
     public const SERVER_KEY = 'skinsystem.server_id';
 
+    public const LIBRARY_LIMIT_KEY = 'skinsystem.library_limit';
+
+    public const DEFAULT_LIBRARY_LIMIT = 10;
+
+    public const MAX_LIBRARY_LIMIT = 100;
+
     /**
      * @return array<int, string>
      */
@@ -38,6 +44,15 @@ class SkinSystemSettings
         $serverId = (int) $value;
 
         return $serverId > 0 && $serverId <= self::MAX_DATABASE_ID ? $serverId : null;
+    }
+
+    public function libraryLimit(): int
+    {
+        $value = filter_var(setting(self::LIBRARY_LIMIT_KEY, self::DEFAULT_LIBRARY_LIMIT), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => self::MAX_LIBRARY_LIMIT],
+        ]);
+
+        return $value === false ? self::DEFAULT_LIBRARY_LIMIT : $value;
     }
 
     /**

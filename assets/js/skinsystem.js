@@ -29,6 +29,23 @@
         let objectUrl = null;
         let viewer = null;
 
+        const deleteSavedModal = document.getElementById('deleteSavedSkinModal');
+
+        if (deleteSavedModal) {
+            deleteSavedModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const deleteForm = deleteSavedModal.querySelector('[data-delete-saved-form]');
+                const message = deleteSavedModal.querySelector('[data-delete-saved-message]');
+
+                if (!button || !deleteForm || !message) {
+                    return;
+                }
+
+                deleteForm.action = button.dataset.deleteSavedUrl;
+                message.textContent = message.dataset.messageTemplate.replace(':name', button.dataset.deleteSavedName);
+            });
+        }
+
         function selectedModel() {
             const selected = form.querySelector('input[name="variant"]:checked');
 

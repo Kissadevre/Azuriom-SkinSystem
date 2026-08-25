@@ -17,6 +17,8 @@ return [
         'select_server' => 'Selecciona un servidor ejecutable',
         'server_help' => 'Solo aparecen servidores de Minecraft con AzLink o RCON capaces de ejecutar comandos de consola.',
         'no_servers' => 'No hay un servidor de Minecraft ejecutable y compatible. Primero configura AzLink o RCON en Azuriom.',
+        'library_limit' => 'Skins guardadas por usuario',
+        'library_limit_help' => 'Cantidad máxima de skins reutilizables que un usuario autorizado puede conservar en su biblioteca personal (1–100).',
         'endpoint' => 'Patrón del endpoint público de PNG',
         'endpoint_help' => 'SkinsRestorer y MineSkin deben poder descargar las URLs versionadas de PNG desde este endpoint.',
     ],
@@ -44,6 +46,7 @@ return [
     ],
     'permissions' => [
         'skin' => 'Subir y administrar su propia skin de Minecraft',
+        'library' => 'Guardar y alternar skins desde su biblioteca personal',
         'admin' => 'Administrar la configuración de SkinSystem',
     ],
 ];

@@ -4,17 +4,21 @@ namespace Azuriom\Plugin\SkinSystem\Controllers;
 
 use Azuriom\Http\Controllers\Controller;
 use Azuriom\Models\User;
+use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
 use Azuriom\Plugin\SkinSystem\Requests\StoreSkinRequest;
 use Azuriom\Plugin\SkinSystem\Services\ManageSkin;
+use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
 use Azuriom\Plugin\SkinSystem\Services\SkinSynchronizer;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Services\UserSkinLock;
 use Azuriom\Plugin\SkinSystem\Support\SyncResult;
 use Closure;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class SkinController extends Controller
 {
@@ -26,12 +30,21 @@ class SkinController extends Controller
         ManageSkin $manager,
         SkinSynchronizer $synchronizer,
         UserSkinLock $lock,
+        SkinSystemSettings $settings,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $synchronizer) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $synchronizer, $settings) {
+            $saveToLibrary = $request->user()->can('skinsystem.library');
             $result = $manager->store(
                 $request->user(),
                 $request->file('skin'),
                 $request->string('variant')->toString(),
+                $saveToLibrary,
+                $request->string('name')->trim()->toString() ?: Str::substr(
+                    pathinfo($request->file('skin')->getClientOriginalName(), PATHINFO_FILENAME),
+                    0,
+                    40,
+                ),
+                $settings->libraryLimit(),
             );
 
             if (! $result['changed']) {
@@ -45,6 +58,54 @@ class SkinController extends Controller
                 trans('skinsystem::messages.status.updated'),
             );
         });
+    }
+
+    public function activateSaved(
+        Request $request,
+        SavedSkin $savedSkin,
+        ManageSkin $manager,
+        SkinSynchronizer $synchronizer,
+        UserSkinLock $lock,
+    ): RedirectResponse {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $savedSkin, $manager, $synchronizer) {
+            $result = $manager->activate($request->user(), $savedSkin);
+
+            if (! $result['changed']) {
+                return to_route('skinsystem.index')->with('success', trans('skinsystem::messages.status.already_active'));
+            }
+
+            return $this->withSyncFeedback(
+                to_route('skinsystem.index'),
+                $synchronizer->apply($result['skin'], $request->user()),
+                trans('skinsystem::messages.status.activated'),
+            );
+        });
+    }
+
+    public function destroySaved(
+        Request $request,
+        SavedSkin $savedSkin,
+        ManageSkin $manager,
+        UserSkinLock $lock,
+    ): RedirectResponse {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $savedSkin, $manager) {
+            $manager->deleteSaved($request->user(), $savedSkin);
+
+            return to_route('skinsystem.index')->with('success', trans('skinsystem::messages.status.saved_deleted'));
+        });
+    }
+
+    public function savedImage(Request $request, SavedSkin $savedSkin, SkinStorage $storage)
+    {
+        abort_unless((int) $savedSkin->user_id === (int) $request->user()->getKey(), 404);
+        abort_unless($storage->disk()->exists($savedSkin->file), 404);
+
+        return $storage->disk()->response($savedSkin->file, 'skin.png', [
+            'Content-Type' => 'image/png',
+            'Content-Disposition' => 'inline; filename="skin.png"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
     }
 
     /**

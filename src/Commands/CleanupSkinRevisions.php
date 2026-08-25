@@ -2,6 +2,7 @@
 
 namespace Azuriom\Plugin\SkinSystem\Commands;
 
+use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinRevision;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
@@ -131,6 +132,7 @@ class CleanupSkinRevisions extends Command
         SkinStorage $storage,
     ): bool {
         if (Skin::query()->where('file', $path)->exists()
+            || SavedSkin::query()->where('file', $path)->exists()
             || SkinRevision::query()->where('file', $path)->exists()) {
             return false;
         }

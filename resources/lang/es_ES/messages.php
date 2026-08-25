@@ -26,6 +26,7 @@ return [
         'sync_note' => 'Después de guardarla, SkinSystem enviará la nueva skin al servidor de Minecraft configurado.',
         'invalid_type' => 'Selecciona una imagen PNG.',
         'invalid_size' => 'El archivo PNG no debe superar los 3 MB.',
+        'name_placeholder' => 'Por ejemplo: Aventurero de redstone',
     ],
     'current' => [
         'eyebrow' => 'Skin activa',
@@ -36,6 +37,7 @@ return [
         'confirm' => '¿Seguro que quieres eliminar tu skin actual del sitio web?',
     ],
     'fields' => [
+        'name' => 'Nombre de la skin',
         'skin' => 'Skin de Minecraft en PNG',
         'variant' => 'Modelo de brazos',
         'resolved_variant' => 'Modelo detectado',
@@ -60,11 +62,28 @@ return [
         'download' => 'Descargar PNG',
         'sync' => 'Sincronizar de nuevo',
         'uploading' => 'Subiendo...',
+        'activate' => 'Usar skin',
+        'remove_saved' => 'Eliminar de la biblioteca',
     ],
     'status' => [
         'updated' => 'Tu skin se guardó correctamente.',
         'unchanged' => 'Esta skin y modelo de brazos ya están activos en el sitio web.',
         'deleted' => 'Tu skin del sitio web fue eliminada.',
+        'activated' => 'La skin seleccionada ahora está activa.',
+        'already_active' => 'Esa skin ya está activa.',
+        'saved_deleted' => 'La skin se eliminó de tu biblioteca. Tu skin activa no fue modificada.',
+    ],
+    'library' => [
+        'eyebrow' => 'Colección personal',
+        'title' => 'Mi biblioteca de skins',
+        'usage' => ':count de :limit guardadas',
+        'empty_title' => 'Tu biblioteca está vacía',
+        'empty' => 'La próxima skin que subas se guardará aquí para que puedas reutilizarla.',
+        'active' => 'Activa',
+        'preview_alt' => 'Vista de la textura de :name',
+        'delete_title' => 'Eliminar skin guardada',
+        'delete_confirm' => '¿Eliminar “:name” de tu biblioteca? Esto no cambiará la skin activa actualmente en Minecraft.',
+        'default_name' => 'Skin de Minecraft',
     ],
     'sync' => [
         'status' => [
@@ -103,5 +122,6 @@ return [
         'dimensions' => 'La skin debe medir exactamente 64×64 o 64×32 píxeles.',
         'legacy_slim' => 'Las skins antiguas de 64×32 solo admiten el modelo de brazos clásico.',
         'gd_missing' => 'El servidor no puede procesar skins porque la extensión GD de PHP no está disponible.',
+        'library_full' => 'Tu biblioteca de skins está llena (máximo :limit). Elimina una skin guardada antes de subir otra.',
     ],
 ];

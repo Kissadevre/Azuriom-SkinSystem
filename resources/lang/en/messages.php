@@ -26,6 +26,7 @@ return [
         'sync_note' => 'After saving, SkinSystem will submit the new skin to your configured Minecraft server.',
         'invalid_type' => 'Choose a PNG image.',
         'invalid_size' => 'The PNG must not exceed 3 MB.',
+        'name_placeholder' => 'For example: Redstone adventurer',
     ],
     'current' => [
         'eyebrow' => 'Active skin',
@@ -36,6 +37,7 @@ return [
         'confirm' => 'Are you sure you want to remove your current website skin?',
     ],
     'fields' => [
+        'name' => 'Skin name',
         'skin' => 'Minecraft skin PNG',
         'variant' => 'Arm model',
         'resolved_variant' => 'Detected model',
@@ -60,11 +62,28 @@ return [
         'download' => 'Download PNG',
         'sync' => 'Synchronize again',
         'uploading' => 'Uploading...',
+        'activate' => 'Use skin',
+        'remove_saved' => 'Remove from library',
     ],
     'status' => [
         'updated' => 'Your skin was saved successfully.',
         'unchanged' => 'This skin and arm model are already active on the website.',
         'deleted' => 'Your website skin was deleted.',
+        'activated' => 'The selected skin is now active.',
+        'already_active' => 'That skin is already active.',
+        'saved_deleted' => 'The skin was removed from your library. Your active skin was not changed.',
+    ],
+    'library' => [
+        'eyebrow' => 'Personal collection',
+        'title' => 'My skin library',
+        'usage' => ':count of :limit saved',
+        'empty_title' => 'Your library is empty',
+        'empty' => 'The next skin you upload will be saved here for quick access.',
+        'active' => 'Active',
+        'preview_alt' => 'Texture preview for :name',
+        'delete_title' => 'Remove saved skin',
+        'delete_confirm' => 'Remove “:name” from your library? This will not change the skin currently active in Minecraft.',
+        'default_name' => 'Minecraft skin',
     ],
     'sync' => [
         'status' => [
@@ -103,5 +122,6 @@ return [
         'dimensions' => 'The skin must be exactly 64×64 or 64×32 pixels.',
         'legacy_slim' => 'Legacy 64×32 skins only support the classic arm model.',
         'gd_missing' => 'The server cannot process skins because the PHP GD extension is unavailable.',
+        'library_full' => 'Your skin library is full (maximum :limit). Remove a saved skin before uploading another one.',
     ],
 ];

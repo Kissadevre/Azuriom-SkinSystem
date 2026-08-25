@@ -26,6 +26,12 @@ class UpdateSettingsRequest extends FormRequest
     {
         return [
             'sync_enabled' => ['required', 'boolean'],
+            'library_limit' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:'.SkinSystemSettings::MAX_LIBRARY_LIMIT,
+            ],
             'server_id' => [
                 'bail',
                 'nullable',

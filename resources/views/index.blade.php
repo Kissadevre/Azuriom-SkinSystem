@@ -143,6 +143,23 @@
                               data-skinsystem-upload>
                             @csrf
 
+                            @if($libraryEnabled)
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" for="skinName">
+                                        {{ trans('skinsystem::messages.fields.name') }}
+                                    </label>
+                                    <input class="form-control @error('name') is-invalid @enderror"
+                                           id="skinName"
+                                           name="name"
+                                           maxlength="40"
+                                           value="{{ old('name') }}"
+                                           placeholder="{{ trans('skinsystem::messages.upload.name_placeholder') }}">
+                                    @error('name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            @endif
+
                             <div class="mb-4">
                                 <label class="form-label fw-semibold" for="skinInput">
                                     {{ trans('skinsystem::messages.fields.skin') }}
@@ -304,7 +321,98 @@
                 @endif
             </div>
         </div>
+
+        @if($libraryEnabled)
+            <section class="card skinsystem-card mt-4" id="skin-library">
+                <div class="card-header skinsystem-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                        <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.library.eyebrow') }}</span>
+                        <h2 class="h5 mb-0">{{ trans('skinsystem::messages.library.title') }}</h2>
+                    </div>
+                    <span class="badge rounded-pill text-bg-secondary px-3 py-2">
+                        {{ trans('skinsystem::messages.library.usage', ['count' => $savedSkins->count(), 'limit' => $libraryLimit]) }}
+                    </span>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    @if($savedSkins->isEmpty())
+                        <div class="skinsystem-library-empty">
+                            <i class="bi bi-collection" aria-hidden="true"></i>
+                            <strong>{{ trans('skinsystem::messages.library.empty_title') }}</strong>
+                            <span>{{ trans('skinsystem::messages.library.empty') }}</span>
+                        </div>
+                    @else
+                        <div class="skinsystem-library-grid">
+                            @foreach($savedSkins as $savedSkin)
+                                @php($isActive = $skin && $skin->sha256 === $savedSkin->sha256 && $skin->variant === $savedSkin->variant)
+                                <article class="skinsystem-library-item {{ $isActive ? 'is-active' : '' }}">
+                                    <div class="skinsystem-library-preview">
+                                        <img src="{{ route('skinsystem.library.image', $savedSkin) }}"
+                                             alt="{{ trans('skinsystem::messages.library.preview_alt', ['name' => $savedSkin->name]) }}"
+                                             loading="lazy">
+                                        @if($isActive)
+                                            <span class="badge text-bg-success">
+                                                <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
+                                                {{ trans('skinsystem::messages.library.active') }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="h6 text-truncate mb-1" title="{{ $savedSkin->name }}">{{ $savedSkin->name }}</h3>
+                                        <div class="small text-body-secondary mb-3">
+                                            {{ trans('skinsystem::messages.variants.'.$savedSkin->variant) }}
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <form class="flex-grow-1" action="{{ route('skinsystem.library.activate', $savedSkin) }}" method="POST">
+                                                @csrf
+                                                <button class="btn btn-primary btn-sm w-100" type="submit" @disabled($isActive)>
+                                                    <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>
+                                                    {{ trans($isActive ? 'skinsystem::messages.library.active' : 'skinsystem::messages.actions.activate') }}
+                                                </button>
+                                            </form>
+                                            <button class="btn btn-outline-danger btn-sm"
+                                                    type="button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteSavedSkinModal"
+                                                    data-delete-saved-url="{{ route('skinsystem.library.destroy', $savedSkin) }}"
+                                                    data-delete-saved-name="{{ $savedSkin->name }}"
+                                                    aria-label="{{ trans('skinsystem::messages.actions.remove_saved') }}">
+                                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </section>
+        @endif
     </div>
+
+    @if($libraryEnabled && $savedSkins->isNotEmpty())
+        <div class="modal fade" id="deleteSavedSkinModal" tabindex="-1" aria-labelledby="deleteSavedSkinModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="deleteSavedSkinModalLabel">{{ trans('skinsystem::messages.library.delete_title') }}</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ trans('messages.actions.close') }}"></button>
+                    </div>
+                    <div class="modal-body" data-delete-saved-message data-message-template="{{ trans('skinsystem::messages.library.delete_confirm', ['name' => ':name']) }}"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ trans('messages.actions.cancel') }}</button>
+                        <form method="POST" data-delete-saved-form>
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1" aria-hidden="true"></i>
+                                {{ trans('skinsystem::messages.actions.remove_saved') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if($skin)
         <div class="modal fade" id="deleteSkinModal" tabindex="-1" aria-labelledby="deleteSkinModalLabel" aria-hidden="true">

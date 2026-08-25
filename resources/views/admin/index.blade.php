@@ -109,6 +109,24 @@
                     <div class="form-text">{{ trans('skinsystem::admin.settings.server_help') }}</div>
                 </div>
 
+                <div class="p-4 border-bottom">
+                    <label class="form-label fw-semibold" for="libraryLimit">
+                        {{ trans('skinsystem::admin.settings.library_limit') }}
+                    </label>
+                    <input class="form-control @error('library_limit') is-invalid @enderror"
+                           type="number"
+                           id="libraryLimit"
+                           name="library_limit"
+                           min="1"
+                           max="{{ \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::MAX_LIBRARY_LIMIT }}"
+                           value="{{ old('library_limit', $libraryLimit) }}"
+                           required>
+                    @error('library_limit')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="form-text">{{ trans('skinsystem::admin.settings.library_limit_help') }}</div>
+                </div>
+
                 <div class="p-4">
                     <label class="form-label fw-semibold" for="publicEndpoint">
                         {{ trans('skinsystem::admin.settings.endpoint') }}

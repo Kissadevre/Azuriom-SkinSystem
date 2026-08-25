@@ -23,6 +23,8 @@ The separate Azuriom Skin API and Skin3D Viewer plugins are **not** required. Sk
 - Three-megabyte upload limit and GD re-encoding before storage.
 - Immutable, revisioned SHA-256-addressed PNG endpoint for MineSkin and web clients.
 - One current skin record per Azuriom user with explicit revision tracking.
+- Permission-controlled personal skin libraries with administrator-defined per-user quotas.
+- Instant activation of a saved skin without uploading its PNG again; every switch creates a new immutable revision and uses the normal SkinsRestorer synchronization path.
 - Integrated 3D preview with automatic, classic, and slim arm models.
 - Server-side classic/slim detection compatible with the bundled viewer heuristic.
 - A dedicated public-image rate limit, independent from Azuriom's shared API limiter.
@@ -57,12 +59,13 @@ A normal return means **submitted**, not confirmed as applied. AzLink does not p
 1. Install SkinsRestorer at the layer that owns player skin data.
 2. Connect that authoritative Minecraft server or proxy to Azuriom with AzLink or RCON.
 3. In **Admin > SkinSystem**, select that server and enable synchronization.
-4. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
-5. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, add the Azuriom HTTPS origin to `commands.restrictSkinUrls.list`.
-6. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
-7. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
-8. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
-9. Run Azuriom's scheduler normally. It invokes `skinsystem:cleanup` daily; the command can also be run manually and accepts `--days=30`.
+4. Choose the maximum personal-library size and grant the `skinsystem.library` permission only to roles that may save and switch skins.
+5. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
+6. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, add the Azuriom HTTPS origin to `commands.restrictSkinUrls.list`.
+7. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
+8. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
+9. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
+10. Run Azuriom's scheduler normally. It invokes `skinsystem:cleanup` daily; the command can also be run manually and accepts `--days=30`.
 
 Saving an HTTP or otherwise unreachable `APP_URL` is allowed so the site can be configured in stages. Uploads remain local and their synchronization state records the precise precondition failure until configuration is corrected.
 
@@ -72,7 +75,7 @@ Changing the selected authoritative server affects newly created set operations.
 
 Every accepted PNG is decoded and re-encoded with GD, then stored under a SHA-256 path. The public endpoint resolves an exact `(user, revision, hash)` database tuple, preventing arbitrary revision aliases from serving current bytes.
 
-Superseded revision mappings and unreferenced blobs are retained for 30 days so queued consumers do not receive premature 404 responses. The cleanup command serializes against user uploads before removing data and never deletes the active revision. Revision numbers remain monotonic even after historical mappings are purged. Destination tombstones are intentionally not expired because neither AzLink nor RCON supplies an authoritative applied/cleared acknowledgement.
+Superseded revision mappings and unreferenced blobs are retained for 30 days so queued consumers do not receive premature 404 responses. The cleanup command serializes against user uploads before removing data and never deletes the active revision or a blob referenced by a saved library entry. Revision numbers remain monotonic even after historical mappings are purged. Destination tombstones are intentionally not expired because neither AzLink nor RCON supplies an authoritative applied/cleared acknowledgement.
 
 ## Development checks
 
