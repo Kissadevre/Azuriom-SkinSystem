@@ -3,125 +3,236 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         const root = document.querySelector('[data-skinsystem-viewer]');
+        const form = document.querySelector('[data-skinsystem-upload]');
 
-        if (!root) {
+        if (!root || !form) {
             return;
         }
 
         const canvas = root.querySelector('canvas');
         const placeholder = root.querySelector('[data-viewer-placeholder]');
-        const error = document.querySelector('[data-viewer-error]');
-        const fileInput = document.getElementById('skinInput');
-        const variantInput = document.getElementById('variantInput');
-
-        if (!canvas || typeof window.skinview3d === 'undefined') {
-            if (error) {
-                error.hidden = false;
-            }
-
-            return;
-        }
-
-        let viewer;
-
-        try {
-            viewer = new window.skinview3d.SkinViewer({
-                canvas: canvas,
-                width: 320,
-                height: 448,
-                zoom: 0.82,
-                fov: 55,
-            });
-
-            viewer.animation = new window.skinview3d.IdleAnimation();
-            viewer.autoRotate = true;
-            viewer.autoRotateSpeed = 0.55;
-        } catch (exception) {
-            if (error) {
-                error.hidden = false;
-            }
-
-            if (placeholder) {
-                placeholder.hidden = false;
-            }
-
-            return;
-        }
-
+        const loading = root.querySelector('[data-viewer-loading]');
+        const viewerError = document.querySelector('[data-viewer-error]');
+        const fileInput = form.querySelector('#skinInput');
+        const variantInputs = form.querySelectorAll('input[name="variant"]');
+        const dropzone = form.querySelector('[data-skin-dropzone]');
+        const dropzoneCopy = form.querySelector('[data-dropzone-copy]');
+        const selection = form.querySelector('[data-selected-file]');
+        const fileName = form.querySelector('[data-file-name]');
+        const fileSize = form.querySelector('[data-file-size]');
+        const fileError = form.querySelector('[data-file-error]');
+        const submitButton = form.querySelector('[data-upload-submit]');
+        const submitLabel = form.querySelector('[data-submit-label]');
+        const submitLoading = form.querySelector('[data-submit-loading]');
+        const maxFileSize = 3 * 1024 * 1024;
         let previewUrl = root.dataset.skinUrl || null;
         let objectUrl = null;
+        let viewer = null;
 
         function selectedModel() {
-            if (!variantInput || variantInput.value === 'auto') {
+            const selected = form.querySelector('input[name="variant"]:checked');
+
+            if (!selected || selected.value === 'auto') {
                 return 'auto-detect';
             }
 
-            return variantInput.value === 'classic' ? 'default' : 'slim';
+            return selected.value === 'classic' ? 'default' : 'slim';
         }
 
-        function setLoadingState(isVisible) {
+        function setViewerState(state) {
             if (placeholder) {
-                placeholder.hidden = !isVisible;
+                placeholder.hidden = state !== 'empty';
+            }
+
+            if (loading) {
+                loading.hidden = state !== 'loading';
             }
         }
 
-        function showError() {
-            if (error) {
-                error.hidden = false;
+        function showViewerError(show) {
+            if (viewerError) {
+                viewerError.hidden = !show;
             }
         }
 
         async function loadSkin(url) {
-            if (!url) {
+            if (!viewer || !url) {
+                if (viewer) {
+                    viewer.resetSkin();
+                }
+
+                setViewerState('empty');
+                return;
+            }
+
+            setViewerState('loading');
+            showViewerError(false);
+
+            try {
+                await viewer.loadSkin(url, { model: selectedModel() });
+                setViewerState('ready');
+            } catch (exception) {
                 viewer.resetSkin();
-                setLoadingState(true);
+                setViewerState('empty');
+                showViewerError(true);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) {
+                return bytes + ' B';
+            }
+
+            if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(1) + ' KB';
+            }
+
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function fileValidationMessage(file) {
+            const hasPngExtension = file.name.toLowerCase().endsWith('.png');
+            const hasPngMime = !file.type || file.type === 'image/png';
+
+            if (!hasPngExtension || !hasPngMime) {
+                return dropzone ? dropzone.dataset.invalidType : 'Choose a PNG image.';
+            }
+
+            if (file.size > maxFileSize) {
+                return dropzone ? dropzone.dataset.invalidSize : 'The PNG must not exceed 3 MB.';
+            }
+
+            return '';
+        }
+
+        function setFileError(message) {
+            fileInput.setCustomValidity(message);
+
+            if (fileError) {
+                fileError.textContent = message;
+                fileError.hidden = !message;
+            }
+
+            if (dropzone) {
+                dropzone.classList.toggle('is-invalid', Boolean(message));
+            }
+        }
+
+        function updateFileSelection() {
+            const file = fileInput.files && fileInput.files[0];
+
+            if (!file) {
+                setFileError('');
+
+                if (dropzoneCopy) dropzoneCopy.hidden = false;
+                if (selection) selection.hidden = true;
+                if (submitButton) submitButton.disabled = true;
 
                 return;
             }
 
-            try {
-                await viewer.loadSkin(url, { model: selectedModel() });
-                setLoadingState(false);
+            const validationMessage = fileValidationMessage(file);
+            setFileError(validationMessage);
 
-                if (error) {
-                    error.hidden = true;
-                }
-            } catch (exception) {
-                viewer.resetSkin();
-                setLoadingState(true);
-                showError();
+            if (fileName) fileName.textContent = file.name;
+            if (fileSize) fileSize.textContent = formatFileSize(file.size);
+            if (dropzoneCopy) dropzoneCopy.hidden = true;
+            if (selection) selection.hidden = false;
+            if (submitButton) submitButton.disabled = Boolean(validationMessage);
+
+            if (validationMessage) {
+                return;
             }
+
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+
+            objectUrl = URL.createObjectURL(file);
+            previewUrl = objectUrl;
+            loadSkin(previewUrl);
+        }
+
+        if (canvas && typeof window.skinview3d !== 'undefined') {
+            try {
+                viewer = new window.skinview3d.SkinViewer({
+                    canvas: canvas,
+                    width: 320,
+                    height: 448,
+                    zoom: 0.82,
+                    fov: 55,
+                });
+                viewer.animation = new window.skinview3d.IdleAnimation();
+                viewer.autoRotate = true;
+                viewer.autoRotateSpeed = 0.55;
+            } catch (exception) {
+                showViewerError(true);
+                setViewerState('empty');
+            }
+        } else {
+            showViewerError(true);
         }
 
         function resizeViewer() {
-            const width = Math.max(240, Math.min(360, root.clientWidth - 24));
+            if (!viewer) {
+                return;
+            }
+
+            const width = Math.max(240, Math.min(380, root.clientWidth - 24));
             viewer.width = width;
             viewer.height = Math.round(width * 1.4);
         }
 
-        if (fileInput) {
-            fileInput.addEventListener('change', function () {
-                const file = fileInput.files && fileInput.files[0];
+        fileInput.addEventListener('change', updateFileSelection);
 
-                if (!file) {
+        variantInputs.forEach(function (input) {
+            input.addEventListener('change', function () {
+                loadSkin(previewUrl);
+            });
+        });
+
+        if (dropzone) {
+            ['dragenter', 'dragover'].forEach(function (eventName) {
+                dropzone.addEventListener(eventName, function (event) {
+                    event.preventDefault();
+                    dropzone.classList.add('is-dragging');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(function (eventName) {
+                dropzone.addEventListener(eventName, function (event) {
+                    event.preventDefault();
+                    dropzone.classList.remove('is-dragging');
+                });
+            });
+
+            dropzone.addEventListener('drop', function (event) {
+                const files = event.dataTransfer && event.dataTransfer.files;
+
+                if (!files || files.length !== 1) {
                     return;
                 }
 
-                if (objectUrl) {
-                    URL.revokeObjectURL(objectUrl);
+                try {
+                    fileInput.files = files;
+                    updateFileSelection();
+                } catch (exception) {
+                    // Some browsers do not allow assigning a dropped FileList.
                 }
-
-                objectUrl = URL.createObjectURL(file);
-                previewUrl = objectUrl;
-                loadSkin(previewUrl);
             });
         }
 
-        if (variantInput) {
-            variantInput.addEventListener('change', function () {
-                loadSkin(previewUrl);
-            });
-        }
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                form.reportValidity();
+                return;
+            }
+
+            if (submitButton) submitButton.disabled = true;
+            if (submitLabel) submitLabel.hidden = true;
+            if (submitLoading) submitLoading.hidden = false;
+        });
 
         if ('ResizeObserver' in window) {
             const observer = new ResizeObserver(resizeViewer);
@@ -135,9 +246,12 @@
                 URL.revokeObjectURL(objectUrl);
             }
 
-            viewer.dispose();
+            if (viewer) {
+                viewer.dispose();
+            }
         }, { once: true });
 
+        if (submitButton) submitButton.disabled = !fileInput.files.length;
         resizeViewer();
         loadSkin(previewUrl);
     });
