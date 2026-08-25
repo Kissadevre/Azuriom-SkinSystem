@@ -1,0 +1,41 @@
+.skinsystem-admin-card {
+    overflow: hidden;
+    border-color: var(--bs-border-color-translucent);
+    border-radius: .85rem;
+    box-shadow: 0 .35rem 1rem rgba(20, 30, 55, .05);
+}
+
+.skinsystem-admin-card-header {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: 1.15rem 1.25rem;
+    background: var(--bs-body-bg);
+}
+
+.skinsystem-admin-icon {
+    display: inline-grid;
+    width: 2.6rem;
+    height: 2.6rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: .7rem;
+    font-size: 1.15rem;
+}
+
+.skinsystem-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: .7rem;
+    background: var(--bs-tertiary-bg);
+}
+
+@media (max-width: 575.98px) {
+    .skinsystem-setting-row {
+        align-items: flex-start;
+    }
+}

@@ -19,6 +19,7 @@ return [
     'settings' => [
         'title' => 'Synchronization settings',
         'description' => 'Configure synchronization, the authoritative Minecraft server, and personal skin libraries.',
+        'sync_description' => 'Control automatic dispatch and choose where SkinsRestorer commands are executed.',
         'enabled' => 'Enable automatic synchronization',
         'enabled_help' => 'Submit a SkinsRestorer command after each changed upload and clear every recorded destination when removing a skin.',
         'server' => 'Authoritative Minecraft server',
@@ -27,6 +28,9 @@ return [
         'no_servers' => 'No compatible executable Minecraft server is available. Configure AzLink or RCON in Azuriom first.',
         'library_limit' => 'Saved skins per user',
         'library_limit_help' => 'Maximum number of reusable skins an authorized user can keep in their personal library (1–100).',
+        'library_title' => 'Library and delivery',
+        'library_description' => 'Set personal storage limits and review the public PNG address.',
+        'skins_unit' => 'skins',
         'endpoint' => 'Public PNG endpoint pattern',
         'endpoint_help' => 'SkinsRestorer and MineSkin must be able to retrieve revisioned PNG URLs from this endpoint.',
     ],
@@ -51,6 +55,9 @@ return [
     'validation' => [
         'server_required' => 'Select an authoritative server before enabling synchronization.',
         'server_unavailable' => 'The selected server is no longer available or cannot execute compatible Minecraft commands.',
+        'library_limit_integer' => 'The saved skins limit must contain whole numbers only.',
+        'library_limit_min' => 'The saved skins limit must be at least 1.',
+        'library_limit_max' => 'The saved skins limit may not exceed 100.',
     ],
     'permissions' => [
         'skin' => 'Upload and manage their own Minecraft skin',

@@ -45,6 +45,15 @@ class UpdateSettingsRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'library_limit.integer' => trans('skinsystem::admin.validation.library_limit_integer'),
+            'library_limit.min' => trans('skinsystem::admin.validation.library_limit_min'),
+            'library_limit.max' => trans('skinsystem::admin.validation.library_limit_max'),
+        ];
+    }
+
     /**
      * Verify that the selected server still exposes an executable bridge.
      */

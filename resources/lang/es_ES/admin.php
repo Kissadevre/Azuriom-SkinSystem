@@ -19,6 +19,7 @@ return [
     'settings' => [
         'title' => 'Configuración de sincronización',
         'description' => 'Configura la sincronización, el servidor de Minecraft autoritativo y las bibliotecas personales.',
+        'sync_description' => 'Controla el envío automático y elige dónde se ejecutarán los comandos de SkinsRestorer.',
         'enabled' => 'Activar sincronización automática',
         'enabled_help' => 'Envía un comando de SkinsRestorer después de cada carga modificada y limpia todos los destinos registrados al eliminar una skin.',
         'server' => 'Servidor de Minecraft autoritativo',
@@ -27,6 +28,9 @@ return [
         'no_servers' => 'No hay un servidor de Minecraft ejecutable y compatible. Primero configura AzLink o RCON en Azuriom.',
         'library_limit' => 'Skins guardadas por usuario',
         'library_limit_help' => 'Cantidad máxima de skins reutilizables que un usuario autorizado puede conservar en su biblioteca personal (1–100).',
+        'library_title' => 'Biblioteca y distribución',
+        'library_description' => 'Define los límites de almacenamiento y revisa la dirección pública de los PNG.',
+        'skins_unit' => 'skins',
         'endpoint' => 'Patrón del endpoint público de PNG',
         'endpoint_help' => 'SkinsRestorer y MineSkin deben poder descargar las URLs versionadas de PNG desde este endpoint.',
     ],
@@ -51,6 +55,9 @@ return [
     'validation' => [
         'server_required' => 'Selecciona un servidor autoritativo antes de activar la sincronización.',
         'server_unavailable' => 'El servidor seleccionado ya no está disponible o no puede ejecutar comandos de Minecraft compatibles.',
+        'library_limit_integer' => 'El límite de skins guardadas solo puede contener números enteros.',
+        'library_limit_min' => 'El límite de skins guardadas debe ser como mínimo 1.',
+        'library_limit_max' => 'El límite de skins guardadas no puede superar 100.',
     ],
     'permissions' => [
         'skin' => 'Subir y administrar su propia skin de Minecraft',
