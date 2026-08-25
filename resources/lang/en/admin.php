@@ -40,6 +40,10 @@ return [
     ],
     'requirements' => [
         'title' => 'Before enabling synchronization',
+        'description' => 'Complete these checks before enabling automatic synchronization.',
+        'server_title' => 'Minecraft server',
+        'delivery_title' => 'Public skin delivery',
+        'operation_title' => 'Reliable operation',
         'skinsrestorer' => 'Install and configure SkinsRestorer on the server that owns player skin data.',
         'bridge' => 'Connect that server to Azuriom through AzLink or RCON, then select it from the Settings submenu.',
         'public_url' => 'Serve Azuriom over a publicly reachable HTTPS URL; localhost and private addresses cannot be fetched by MineSkin.',
@@ -51,6 +55,47 @@ return [
         'scheduler' => 'Run Azuriom\'s scheduler so superseded revision files are cleaned after the 30-day safety window.',
         'https_warning' => 'The configured site URL is not HTTPS. Skin uploads will be saved, but SkinSystem will refuse to submit an insecure URL to SkinsRestorer.',
         'submitted_semantics' => '“Submitted” means Azuriom handed one or more commands to RCON or queued them for AzLink. It does not prove execution; retained clear operations can be submitted again safely.',
+    ],
+    'credits' => [
+        'title' => 'Credits and acknowledgements',
+        'description' => 'Projects and technologies that made SkinSystem possible.',
+        'azuriom' => [
+            'name' => 'Azuriom',
+            'role' => 'Plugin platform and account foundation',
+        ],
+        'laravel' => [
+            'name' => 'Laravel',
+            'role' => 'Application framework used by Azuriom',
+        ],
+        'bootstrap' => [
+            'name' => 'Bootstrap',
+            'role' => 'Responsive interface toolkit',
+        ],
+        'skinview3d' => [
+            'name' => 'skinview3d',
+            'role' => 'Bundled interactive 3D skin renderer',
+        ],
+        'skinsrestorer' => [
+            'name' => 'SkinsRestorer',
+            'role' => 'Minecraft-side skin application engine',
+        ],
+        'azlink' => [
+            'name' => 'AzLink',
+            'role' => 'Azuriom-to-Minecraft command bridge',
+        ],
+        'original' => [
+            'name' => 'Original SkinSystem',
+            'role' => 'Original project and migration concept',
+        ],
+        'skin_api' => [
+            'name' => 'Skin API',
+            'role' => 'Azuriom architecture reference',
+        ],
+        'skin3d_plugin' => [
+            'name' => 'Skin3D Viewer',
+            'role' => 'Azuriom interface reference',
+        ],
+        'disclaimer' => 'Skin API and Skin3D Viewer are credited as design references and are not runtime dependencies. Each project and trademark belongs to its respective owners.',
     ],
     'validation' => [
         'server_required' => 'Select an authoritative server before enabling synchronization.',

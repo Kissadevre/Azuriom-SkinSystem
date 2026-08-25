@@ -40,6 +40,10 @@ return [
     ],
     'requirements' => [
         'title' => 'Antes de activar la sincronización',
+        'description' => 'Completa estas comprobaciones antes de activar la sincronización automática.',
+        'server_title' => 'Servidor de Minecraft',
+        'delivery_title' => 'Distribución pública',
+        'operation_title' => 'Operación confiable',
         'skinsrestorer' => 'Instala y configura SkinsRestorer en el servidor que administra los datos de skins de los jugadores.',
         'bridge' => 'Conecta ese servidor con Azuriom mediante AzLink o RCON y selecciónalo desde el submenú Ajustes.',
         'public_url' => 'Publica Azuriom mediante una URL HTTPS accesible desde Internet; MineSkin no puede obtener archivos desde localhost o direcciones privadas.',
@@ -51,6 +55,47 @@ return [
         'scheduler' => 'Ejecuta el programador de Azuriom para eliminar revisiones reemplazadas después de la ventana de seguridad de 30 días.',
         'https_warning' => 'La URL configurada del sitio no usa HTTPS. Las skins se guardarán, pero SkinSystem se negará a enviar una URL insegura a SkinsRestorer.',
         'submitted_semantics' => '“Enviado” significa que Azuriom entregó uno o varios comandos a RCON o los dejó en la cola de AzLink. No demuestra su ejecución; las limpiezas conservadas pueden reenviarse de forma segura.',
+    ],
+    'credits' => [
+        'title' => 'Créditos y agradecimientos',
+        'description' => 'Proyectos y tecnologías que hicieron posible SkinSystem.',
+        'azuriom' => [
+            'name' => 'Azuriom',
+            'role' => 'Plataforma de plugins y base de cuentas',
+        ],
+        'laravel' => [
+            'name' => 'Laravel',
+            'role' => 'Framework de aplicación utilizado por Azuriom',
+        ],
+        'bootstrap' => [
+            'name' => 'Bootstrap',
+            'role' => 'Herramientas para la interfaz adaptable',
+        ],
+        'skinview3d' => [
+            'name' => 'skinview3d',
+            'role' => 'Renderizador 3D interactivo incluido',
+        ],
+        'skinsrestorer' => [
+            'name' => 'SkinsRestorer',
+            'role' => 'Motor que aplica las skins en Minecraft',
+        ],
+        'azlink' => [
+            'name' => 'AzLink',
+            'role' => 'Puente de comandos entre Azuriom y Minecraft',
+        ],
+        'original' => [
+            'name' => 'SkinSystem original',
+            'role' => 'Proyecto original y concepto de migración',
+        ],
+        'skin_api' => [
+            'name' => 'Skin API',
+            'role' => 'Referencia de arquitectura para Azuriom',
+        ],
+        'skin3d_plugin' => [
+            'name' => 'Skin3D Viewer',
+            'role' => 'Referencia de interfaz para Azuriom',
+        ],
+        'disclaimer' => 'Skin API y Skin3D Viewer se acreditan como referencias de diseño y no son dependencias de ejecución. Cada proyecto y marca pertenece a sus respectivos propietarios.',
     ],
     'validation' => [
         'server_required' => 'Selecciona un servidor autoritativo antes de activar la sincronización.',
