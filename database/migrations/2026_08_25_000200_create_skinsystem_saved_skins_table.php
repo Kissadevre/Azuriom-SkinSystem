@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('skinsystem_saved_skins', function (Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('user_id');
-            $table->string('name', 40);
+            $table->string('name', 16);
             $table->string('file');
             $table->char('sha256', 64)->index();
             $table->string('variant', 16)->default('auto');

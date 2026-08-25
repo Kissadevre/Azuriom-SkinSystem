@@ -34,9 +34,6 @@ class ManageSkin
         User $user,
         UploadedFile $file,
         string $variant,
-        bool $saveToLibrary = false,
-        ?string $name = null,
-        int $libraryLimit = SkinSystemSettings::DEFAULT_LIBRARY_LIMIT,
     ): array {
         $processed = $this->processor->process($file);
 
@@ -62,42 +59,86 @@ class ManageSkin
             $resolvedVariant,
             $path,
             $processed,
-            $saveToLibrary,
-            $name,
-            $libraryLimit,
         ) {
             // The user row always exists and gives concurrent first uploads a
             // shared lock target before the unique skin row has been created.
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-            if ($saveToLibrary) {
-                $saved = SavedSkin::query()
+            return $this->persistActive($user, $path, $processed['sha256'], $variant, $resolvedVariant);
+        }, self::TRANSACTION_ATTEMPTS);
+    }
+
+    /**
+     * Save a skin in the personal library without changing the active skin.
+     */
+    public function save(
+        User $user,
+        UploadedFile $file,
+        string $variant,
+        string $name,
+        int $libraryLimit,
+        ?int $replacementId = null,
+    ): SavedSkin {
+        $processed = $this->processor->process($file);
+
+        if ($processed['height'] === 32 && $variant === Skin::VARIANT_SLIM) {
+            throw ValidationException::withMessages([
+                'variant' => trans('skinsystem::messages.validation.legacy_slim'),
+            ]);
+        }
+
+        $resolvedVariant = $variant === Skin::VARIANT_AUTO
+            ? $processed['detected_variant']
+            : $variant;
+        $path = $this->storage->put((int) $user->getKey(), $processed['sha256'], $processed['contents']);
+
+        return DB::transaction(function () use (
+            $user,
+            $variant,
+            $name,
+            $libraryLimit,
+            $replacementId,
+            $processed,
+            $resolvedVariant,
+            $path,
+        ) {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            $saved = SavedSkin::query()
+                ->where('user_id', $user->getKey())
+                ->where('sha256', $processed['sha256'])
+                ->where('variant', $variant)
+                ->first();
+
+            if ($saved !== null) {
+                $saved->update(['name' => $name]);
+
+                return $saved;
+            }
+
+            if (SavedSkin::query()->where('user_id', $user->getKey())->count() >= $libraryLimit) {
+                $replacement = SavedSkin::query()
+                    ->whereKey($replacementId)
                     ->where('user_id', $user->getKey())
-                    ->where('sha256', $processed['sha256'])
-                    ->where('variant', $variant)
                     ->first();
 
-                if ($saved === null && SavedSkin::query()->where('user_id', $user->getKey())->count() >= $libraryLimit) {
+                if ($replacement === null) {
                     throw ValidationException::withMessages([
-                        'skin' => trans('skinsystem::messages.validation.library_full', ['limit' => $libraryLimit]),
+                        'replacement_id' => trans('skinsystem::messages.validation.replacement_required'),
                     ]);
                 }
 
-                SavedSkin::query()->updateOrCreate(
-                    [
-                        'user_id' => $user->getKey(),
-                        'sha256' => $processed['sha256'],
-                        'variant' => $variant,
-                    ],
-                    [
-                        'name' => $name ?: trans('skinsystem::messages.library.default_name'),
-                        'file' => $path,
-                        'resolved_variant' => $resolvedVariant,
-                    ],
-                );
+                $replacement->delete();
             }
 
-            return $this->persistActive($user, $path, $processed['sha256'], $variant, $resolvedVariant);
+            return SavedSkin::query()->create([
+                'user_id' => $user->getKey(),
+                'name' => $name,
+                'file' => $path,
+                'sha256' => $processed['sha256'],
+                'variant' => $variant,
+                'resolved_variant' => $resolvedVariant,
+            ]);
         }, self::TRANSACTION_ATTEMPTS);
     }
 

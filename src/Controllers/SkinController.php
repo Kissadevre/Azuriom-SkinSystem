@@ -18,7 +18,6 @@ use Closure;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class SkinController extends Controller
 {
@@ -33,18 +32,24 @@ class SkinController extends Controller
         SkinSystemSettings $settings,
     ): RedirectResponse {
         return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $synchronizer, $settings) {
-            $saveToLibrary = $request->user()->can('skinsystem.library');
+            if ($request->string('action')->toString() === 'save') {
+                $manager->save(
+                    $request->user(),
+                    $request->file('skin'),
+                    $request->string('variant')->toString(),
+                    $request->string('name')->toString(),
+                    $settings->libraryLimit(),
+                    $request->integer('replacement_id') ?: null,
+                );
+
+                return to_route('skinsystem.index')
+                    ->with('success', trans('skinsystem::messages.status.saved'));
+            }
+
             $result = $manager->store(
                 $request->user(),
                 $request->file('skin'),
                 $request->string('variant')->toString(),
-                $saveToLibrary,
-                $request->string('name')->trim()->toString() ?: Str::substr(
-                    pathinfo($request->file('skin')->getClientOriginalName(), PATHINFO_FILENAME),
-                    0,
-                    40,
-                ),
-                $settings->libraryLimit(),
             );
 
             if (! $result['changed']) {

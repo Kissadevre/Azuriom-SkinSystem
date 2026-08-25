@@ -143,23 +143,6 @@
                               data-skinsystem-upload>
                             @csrf
 
-                            @if($libraryEnabled)
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold" for="skinName">
-                                        {{ trans('skinsystem::messages.fields.name') }}
-                                    </label>
-                                    <input class="form-control @error('name') is-invalid @enderror"
-                                           id="skinName"
-                                           name="name"
-                                           maxlength="40"
-                                           value="{{ old('name') }}"
-                                           placeholder="{{ trans('skinsystem::messages.upload.name_placeholder') }}">
-                                    @error('name')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            @endif
-
                             <div class="mb-4">
                                 <label class="form-label fw-semibold" for="skinInput">
                                     {{ trans('skinsystem::messages.fields.skin') }}
@@ -240,18 +223,96 @@
                                 <span>{{ trans('skinsystem::messages.upload.sync_note') }}</span>
                             </div>
 
-                            <button type="submit"
-                                    class="btn btn-primary btn-lg w-100 skinsystem-submit"
-                                    data-upload-submit>
-                                <span data-submit-label>
-                                    <i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i>
-                                    {{ trans($skin ? 'skinsystem::messages.actions.replace' : 'skinsystem::messages.actions.upload') }}
-                                </span>
-                                <span data-submit-loading hidden>
-                                    <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                                    {{ trans('skinsystem::messages.actions.uploading') }}
-                                </span>
-                            </button>
+                            <div class="skinsystem-upload-actions">
+                                <button type="submit"
+                                        name="action"
+                                        value="activate"
+                                        class="btn btn-primary btn-lg skinsystem-submit"
+                                        data-upload-submit>
+                                    <span data-submit-label>
+                                        <i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i>
+                                        {{ trans($skin ? 'skinsystem::messages.actions.replace' : 'skinsystem::messages.actions.upload') }}
+                                    </span>
+                                    <span data-submit-loading hidden>
+                                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                                        {{ trans('skinsystem::messages.actions.uploading') }}
+                                    </span>
+                                </button>
+
+                                @if($libraryEnabled)
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-lg skinsystem-submit"
+                                            data-save-skin-open
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#saveSkinModal">
+                                        <i class="bi bi-bookmark-plus me-1" aria-hidden="true"></i>
+                                        {{ trans('skinsystem::messages.actions.save') }}
+                                    </button>
+                                @endif
+                            </div>
+
+                            @if($libraryEnabled)
+                                <div class="modal fade"
+                                     id="saveSkinModal"
+                                     tabindex="-1"
+                                     aria-labelledby="saveSkinModalLabel"
+                                     aria-hidden="true"
+                                     @if($errors->has('name') || $errors->has('replacement_id')) data-open-on-load @endif>
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h2 class="modal-title fs-5" id="saveSkinModalLabel">{{ trans('skinsystem::messages.library.save_title') }}</h2>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ trans('messages.actions.close') }}"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="text-body-secondary">{{ trans('skinsystem::messages.library.save_help') }}</p>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold" for="skinName">{{ trans('skinsystem::messages.fields.name') }}</label>
+                                                    <input class="form-control @error('name') is-invalid @enderror"
+                                                           id="skinName"
+                                                           name="name"
+                                                           maxlength="16"
+                                                           pattern="[A-Za-z0-9]+"
+                                                           value="{{ old('name') }}"
+                                                           placeholder="{{ trans('skinsystem::messages.upload.name_placeholder') }}">
+                                                    @error('name')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                    <div class="form-text">{{ trans('skinsystem::messages.library.name_help') }}</div>
+                                                </div>
+
+                                                @if($savedSkins->count() >= $libraryLimit)
+                                                    <div class="alert alert-warning py-2 small">
+                                                        <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+                                                        {{ trans('skinsystem::messages.library.limit_reached', ['limit' => $libraryLimit]) }}
+                                                    </div>
+                                                    <label class="form-label fw-semibold" for="replacementSkin">{{ trans('skinsystem::messages.library.replace_label') }}</label>
+                                                    <select class="form-select @error('replacement_id') is-invalid @enderror"
+                                                            id="replacementSkin"
+                                                            name="replacement_id">
+                                                        <option value="">{{ trans('skinsystem::messages.library.replace_placeholder') }}</option>
+                                                        @foreach($savedSkins as $savedSkin)
+                                                            <option value="{{ $savedSkin->id }}" @selected((int) old('replacement_id') === $savedSkin->id)>
+                                                                {{ $savedSkin->name }} — {{ trans('skinsystem::messages.variants.'.$savedSkin->variant) }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('replacement_id')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                @endif
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ trans('messages.actions.cancel') }}</button>
+                                                <button type="submit" name="action" value="save" class="btn btn-primary" data-save-skin-submit>
+                                                    <i class="bi bi-bookmark-plus me-1" aria-hidden="true"></i>
+                                                    {{ trans('skinsystem::messages.actions.save') }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </form>
                     </div>
                 </section>

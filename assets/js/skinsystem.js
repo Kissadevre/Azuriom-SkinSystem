@@ -24,10 +24,35 @@
         const submitButton = form.querySelector('[data-upload-submit]');
         const submitLabel = form.querySelector('[data-submit-label]');
         const submitLoading = form.querySelector('[data-submit-loading]');
+        const saveOpenButton = form.querySelector('[data-save-skin-open]');
+        const saveModal = document.getElementById('saveSkinModal');
         const maxFileSize = 3 * 1024 * 1024;
         let previewUrl = root.dataset.skinUrl || null;
         let objectUrl = null;
         let viewer = null;
+
+        if (saveModal) {
+            const nameInput = saveModal.querySelector('#skinName');
+            const replacementInput = saveModal.querySelector('#replacementSkin');
+
+            saveModal.addEventListener('show.bs.modal', function () {
+                if (nameInput) nameInput.required = true;
+                if (replacementInput) replacementInput.required = true;
+            });
+
+            saveModal.addEventListener('shown.bs.modal', function () {
+                if (nameInput) nameInput.focus();
+            });
+
+            saveModal.addEventListener('hidden.bs.modal', function () {
+                if (nameInput) nameInput.required = false;
+                if (replacementInput) replacementInput.required = false;
+            });
+
+            if (saveModal.hasAttribute('data-open-on-load') && window.bootstrap) {
+                window.bootstrap.Modal.getOrCreateInstance(saveModal).show();
+            }
+        }
 
         const deleteSavedModal = document.getElementById('deleteSavedSkinModal');
 
@@ -144,6 +169,7 @@
                 if (dropzoneCopy) dropzoneCopy.hidden = false;
                 if (selection) selection.hidden = true;
                 if (submitButton) submitButton.disabled = true;
+                if (saveOpenButton) saveOpenButton.disabled = true;
 
                 return;
             }
@@ -156,6 +182,7 @@
             if (dropzoneCopy) dropzoneCopy.hidden = true;
             if (selection) selection.hidden = false;
             if (submitButton) submitButton.disabled = Boolean(validationMessage);
+            if (saveOpenButton) saveOpenButton.disabled = Boolean(validationMessage);
 
             if (validationMessage) {
                 return;
@@ -246,9 +273,21 @@
                 return;
             }
 
-            if (submitButton) submitButton.disabled = true;
-            if (submitLabel) submitLabel.hidden = true;
-            if (submitLoading) submitLoading.hidden = false;
+            const submitter = event.submitter;
+
+            if (submitter && submitter.name === 'action') {
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = submitter.value;
+                form.appendChild(actionInput);
+                submitter.disabled = true;
+            }
+
+            if (submitter === submitButton) {
+                if (submitLabel) submitLabel.hidden = true;
+                if (submitLoading) submitLoading.hidden = false;
+            }
         });
 
         if ('ResizeObserver' in window) {
@@ -269,6 +308,7 @@
         }, { once: true });
 
         if (submitButton) submitButton.disabled = !fileInput.files.length;
+        if (saveOpenButton) saveOpenButton.disabled = !fileInput.files.length;
         resizeViewer();
         loadSkin(previewUrl);
     });

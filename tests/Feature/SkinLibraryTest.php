@@ -6,6 +6,7 @@ use Azuriom\Models\Setting;
 use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinRevision;
+use Azuriom\Plugin\SkinSystem\Requests\StoreSkinRequest;
 use Azuriom\Plugin\SkinSystem\Services\ManageSkin;
 use Azuriom\Plugin\SkinSystem\Services\SkinProcessor;
 use Azuriom\Plugin\SkinSystem\Services\SkinsRestorerCommandBuilder;
@@ -15,10 +16,40 @@ use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\Fakes\ConfigurableSkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\TestCase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class SkinLibraryTest extends TestCase
 {
+    public function test_saved_skin_names_are_limited_to_sixteen_ascii_letters_and_numbers(): void
+    {
+        $user = $this->createUser();
+
+        foreach (['Has spaces', 'Skin!', 'SeventeenChars123'] as $name) {
+            $request = StoreSkinRequest::create('/', 'POST', [
+                'action' => 'save',
+                'variant' => Skin::VARIANT_CLASSIC,
+                'name' => $name,
+            ], [], ['skin' => $this->uploadedSkin(45)]);
+            $request->setContainer($this->app);
+            $request->setUserResolver(fn () => $user);
+
+            $validator = Validator::make($request->all(), $request->rules(), $request->messages());
+            $this->assertTrue($validator->fails(), "The name {$name} should be rejected.");
+            $this->assertArrayHasKey('name', $validator->errors()->toArray());
+        }
+
+        $request = StoreSkinRequest::create('/', 'POST', [
+            'action' => 'save',
+            'variant' => Skin::VARIANT_CLASSIC,
+            'name' => 'RedstoneHero123',
+        ], [], ['skin' => $this->uploadedSkin(45)]);
+        $request->setContainer($this->app);
+        $request->setUserResolver(fn () => $user);
+
+        $this->assertFalse(Validator::make($request->all(), $request->rules(), $request->messages())->fails());
+    }
+
     public function test_library_limit_uses_a_safe_default_and_accepts_valid_admin_values(): void
     {
         $settings = app(SkinSystemSettings::class);
@@ -37,19 +68,20 @@ class SkinLibraryTest extends TestCase
         $user = $this->createUser();
         $manager = $this->manager();
 
-        $first = $manager->store($user, $this->uploadedSkin(30), Skin::VARIANT_CLASSIC, true, 'Knight', 3);
-        $second = $manager->store($user, $this->uploadedSkin(90), Skin::VARIANT_SLIM, true, 'Ranger', 3);
+        $first = $manager->save($user, $this->uploadedSkin(30), Skin::VARIANT_CLASSIC, 'Knight', 3);
+        $manager->save($user, $this->uploadedSkin(90), Skin::VARIANT_SLIM, 'Ranger', 3);
 
         $this->assertSame(2, SavedSkin::query()->count());
         $this->assertSame('Ranger', SavedSkin::query()->latest('id')->firstOrFail()->name);
-        $this->assertSame($second['skin']->sha256, Skin::query()->sole()->sha256);
+        $this->assertSame(0, Skin::query()->count());
+        $this->assertSame(0, SkinRevision::query()->count());
 
         $result = $manager->activate($user, SavedSkin::query()->where('name', 'Knight')->sole());
 
         $this->assertTrue($result['changed']);
-        $this->assertSame($first['skin']->sha256, $result['skin']->sha256);
-        $this->assertSame(3, $result['skin']->revision);
-        $this->assertSame(3, SkinRevision::query()->count());
+        $this->assertSame($first->sha256, $result['skin']->sha256);
+        $this->assertSame(1, $result['skin']->revision);
+        $this->assertSame(1, SkinRevision::query()->count());
     }
 
     public function test_library_limit_rejects_only_new_entries_and_deletion_does_not_clear_active_skin(): void
@@ -57,19 +89,29 @@ class SkinLibraryTest extends TestCase
         $user = $this->createUser();
         $manager = $this->manager();
 
-        $manager->store($user, $this->uploadedSkin(30), Skin::VARIANT_CLASSIC, true, 'Original', 1);
-        $duplicate = $manager->store($user, $this->uploadedSkin(30), Skin::VARIANT_CLASSIC, true, 'Renamed', 1);
+        $original = $manager->save($user, $this->uploadedSkin(30), Skin::VARIANT_CLASSIC, 'Original', 1);
+        $duplicate = $manager->save($user, $this->uploadedSkin(30), Skin::VARIANT_CLASSIC, 'Renamed', 1);
 
-        $this->assertFalse($duplicate['changed']);
+        $this->assertSame($original->id, $duplicate->id);
         $this->assertSame('Renamed', SavedSkin::query()->sole()->name);
 
         try {
-            $manager->store($user, $this->uploadedSkin(120), Skin::VARIANT_CLASSIC, true, 'Second', 1);
+            $manager->save($user, $this->uploadedSkin(120), Skin::VARIANT_CLASSIC, 'Second', 1);
             $this->fail('The library quota should reject a new saved skin.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('skin', $exception->errors());
+            $this->assertArrayHasKey('replacement_id', $exception->errors());
         }
 
+        $replacement = $manager->save(
+            $user,
+            $this->uploadedSkin(120),
+            Skin::VARIANT_CLASSIC,
+            'Second',
+            1,
+            $original->id,
+        );
+        $this->assertSame('Second', SavedSkin::query()->sole()->name);
+        $manager->activate($user, $replacement);
         $activeId = Skin::query()->sole()->id;
         $manager->deleteSaved($user, SavedSkin::query()->sole());
 

@@ -24,6 +24,8 @@ The separate Azuriom Skin API and Skin3D Viewer plugins are **not** required. Sk
 - Immutable, revisioned SHA-256-addressed PNG endpoint for MineSkin and web clients.
 - One current skin record per Azuriom user with explicit revision tracking.
 - Permission-controlled personal skin libraries with administrator-defined per-user quotas.
+- Separate upload and save actions: uploading activates and synchronizes a skin, while saving only stores it in the library.
+- Alphanumeric library names limited to 16 characters, with an explicit replacement choice when the user's quota is full.
 - Instant activation of a saved skin without uploading its PNG again; every switch creates a new immutable revision and uses the normal SkinsRestorer synchronization path.
 - Integrated 3D preview with automatic, classic, and slim arm models.
 - Server-side classic/slim detection compatible with the bundled viewer heuristic.
