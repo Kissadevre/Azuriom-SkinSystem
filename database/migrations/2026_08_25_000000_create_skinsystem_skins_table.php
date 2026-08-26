@@ -26,6 +26,72 @@ return new class extends Migration
                 ->on('users')
                 ->cascadeOnDelete();
         });
+
+        Schema::create('skinsystem_skin_revisions', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id');
+            $table->unsignedInteger('revision');
+            $table->string('file');
+            $table->char('sha256', 64);
+            $table->string('resolved_variant', 16);
+            $table->timestamps();
+
+            $table->unique(['user_id', 'revision']);
+            $table->index(['user_id', 'sha256']);
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
+
+        Schema::create('skinsystem_sync_states', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id')->unique();
+            $table->string('action', 16);
+            $table->unsignedInteger('skin_revision')->nullable();
+            $table->string('status', 24)->default('pending')->index();
+            $table->char('target_uuid', 36)->nullable();
+            $table->unsignedInteger('target_server_id')->nullable()->index();
+            // This column owns only the current SET row. Per-target CLEAR
+            // ownership lives in skinsystem_sync_targets.
+            $table->unsignedInteger('queued_command_id')->nullable()->unique();
+            $table->timestamp('dispatched_at')->nullable();
+            $table->string('error')->nullable();
+            $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
+
+        Schema::create('skinsystem_sync_targets', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id');
+            $table->char('target_uuid', 36);
+            $table->unsignedInteger('target_server_id');
+            $table->string('status', 24)->default('possible_active')->index();
+            $table->unsignedInteger('clear_revision')->nullable()->index();
+            $table->unsignedInteger('queued_clear_command_id')->nullable()->unique();
+            $table->boolean('clear_may_be_in_flight')->default(false);
+            $table->timestamp('dispatched_at')->nullable();
+            $table->string('error')->nullable();
+            $table->timestamps();
+
+            $table->unique(
+                ['user_id', 'target_uuid', 'target_server_id'],
+                'skinsystem_sync_target_unique',
+            );
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
+
+        Schema::create('skinsystem_saved_skins', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id');
+            $table->string('name', 16);
+            $table->string('file');
+            $table->char('sha256', 64)->index();
+            $table->string('variant', 16)->default('auto');
+            $table->string('resolved_variant', 16)->default('classic');
+            $table->timestamps();
+
+            $table->unique(['user_id', 'sha256', 'variant'], 'skinsystem_saved_skins_unique');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
     }
 
     /**
@@ -33,6 +99,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('skinsystem_saved_skins');
+        Schema::dropIfExists('skinsystem_sync_targets');
+        Schema::dropIfExists('skinsystem_sync_states');
+        Schema::dropIfExists('skinsystem_skin_revisions');
         Schema::dropIfExists('skinsystem_skins');
     }
 };
