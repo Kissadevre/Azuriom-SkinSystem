@@ -9,7 +9,7 @@ class SkinsRestorerCommandBuilder
 {
     public const MAX_URL_LENGTH = 266;
 
-    public function setSkin(Skin $skin, string $targetUuid): string
+    public function setSkin(Skin $skin, string $targetUuid, ?string $sourceUrl = null): string
     {
         $uuid = $this->canonicalUuid($targetUuid);
 
@@ -21,7 +21,7 @@ class SkinsRestorerCommandBuilder
             throw new SyncPreconditionException('invalid_variant');
         }
 
-        $url = $skin->publicUrl();
+        $url = $sourceUrl ?? $skin->publicUrl();
         $this->validatePublicUrl($url);
 
         return sprintf('skin set "%s" %s %s', $url, $uuid, $skin->resolved_variant);

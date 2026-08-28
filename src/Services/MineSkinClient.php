@@ -3,7 +3,9 @@
 namespace Azuriom\Plugin\SkinSystem\Services;
 
 use Azuriom\Plugin\SkinSystem\Exceptions\MineSkinApiException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 class MineSkinClient
@@ -19,12 +21,7 @@ class MineSkinClient
     public function verifyApiKey(string $apiKey): array
     {
         try {
-            $response = Http::withToken($apiKey)
-                ->acceptJson()
-                ->withUserAgent($this->userAgent())
-                ->connectTimeout(5)
-                ->timeout(10)
-                ->get(self::BASE_URL.'/me');
+            $response = $this->request($apiKey)->get(self::BASE_URL.'/me');
         } catch (ConnectionException) {
             throw new MineSkinApiException('unavailable', true);
         }
@@ -42,6 +39,148 @@ class MineSkinClient
             || (is_array($grants) && in_array('capes', $grants, true));
 
         return ['capes' => $capes];
+    }
+
+    /**
+     * @return array{status: string, job_id: string|null, result_uuid: string|null, result_url: string|null}
+     */
+    public function queue(
+        string $apiKey,
+        string $contents,
+        string $variant,
+        ?string $capeId = null,
+    ): array {
+        $parameters = ['variant' => $variant, 'visibility' => 'unlisted'];
+
+        if ($capeId !== null) {
+            $parameters['cape'] = $capeId;
+        }
+
+        try {
+            $response = $this->request($apiKey)
+                ->attach('file', $contents, 'skin.png')
+                ->post(self::BASE_URL.'/queue', $parameters);
+        } catch (ConnectionException) {
+            throw new MineSkinApiException('unavailable', true);
+        }
+
+        $this->ensureGenerationResponse($response);
+
+        return $this->normalizeGenerationResponse($response->json());
+    }
+
+    /**
+     * @return array{status: string, job_id: string|null, result_uuid: string|null, result_url: string|null}
+     */
+    public function job(string $apiKey, string $jobId): array
+    {
+        if (preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $jobId) !== 1) {
+            throw new MineSkinApiException('invalid_response');
+        }
+
+        try {
+            $response = $this->request($apiKey)->get(self::BASE_URL.'/queue/'.$jobId);
+        } catch (ConnectionException) {
+            throw new MineSkinApiException('unavailable', true);
+        }
+
+        $this->ensureGenerationResponse($response);
+
+        return $this->normalizeGenerationResponse($response->json(), $jobId);
+    }
+
+    private function request(string $apiKey): PendingRequest
+    {
+        return Http::withToken($apiKey)
+            ->acceptJson()
+            ->withUserAgent($this->userAgent())
+            ->connectTimeout(5)
+            ->timeout(10);
+    }
+
+    private function ensureGenerationResponse(Response $response): void
+    {
+        if ($response->status() === 401 || $response->status() === 403) {
+            throw new MineSkinApiException('invalid_key');
+        }
+
+        if ($response->status() === 429) {
+            throw new MineSkinApiException('rate_limited', true);
+        }
+
+        if (! $response->successful()) {
+            throw new MineSkinApiException(
+                $response->serverError() ? 'unavailable' : 'request_rejected',
+                $response->serverError(),
+            );
+        }
+
+        if (! is_array($response->json())) {
+            throw new MineSkinApiException('invalid_response');
+        }
+    }
+
+    /**
+     * Normalize both immediate queue responses and asynchronously polled jobs.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{status: string, job_id: string|null, result_uuid: string|null, result_url: string|null}
+     */
+    private function normalizeGenerationResponse(array $payload, ?string $knownJobId = null): array
+    {
+        $skinUuid = data_get($payload, 'skin.uuid')
+            ?? data_get($payload, 'result.skin.uuid')
+            ?? data_get($payload, 'job.result.skin.uuid');
+
+        if (is_string($skinUuid)
+            && preg_match('/^(?:[a-fA-F0-9]{32}|[a-fA-F0-9-]{36})$/D', $skinUuid) === 1) {
+            $normalizedUuid = strtolower(str_replace('-', '', $skinUuid));
+
+            return [
+                'status' => 'completed',
+                'job_id' => $this->jobIdFrom($payload, $knownJobId),
+                'result_uuid' => $normalizedUuid,
+                'result_url' => 'https://minesk.in/'.$normalizedUuid,
+            ];
+        }
+
+        $status = strtolower((string) (
+            data_get($payload, 'status')
+            ?? data_get($payload, 'job.status')
+            ?? 'pending'
+        ));
+
+        if ($status === 'failed') {
+            throw new MineSkinApiException('generation_failed');
+        }
+
+        $jobId = $this->jobIdFrom($payload, $knownJobId);
+
+        if ($jobId === null) {
+            throw new MineSkinApiException('invalid_response');
+        }
+
+        return [
+            'status' => in_array($status, ['queued', 'pending'], true) ? 'pending' : 'processing',
+            'job_id' => $jobId,
+            'result_uuid' => null,
+            'result_url' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function jobIdFrom(array $payload, ?string $fallback): ?string
+    {
+        $jobId = data_get($payload, 'job.id')
+            ?? data_get($payload, 'job.uuid')
+            ?? data_get($payload, 'id')
+            ?? $fallback;
+
+        return is_string($jobId) && preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $jobId) === 1
+            ? $jobId
+            : null;
     }
 
     private function userAgent(): string

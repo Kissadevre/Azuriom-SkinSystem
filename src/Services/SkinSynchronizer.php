@@ -28,7 +28,7 @@ class SkinSynchronizer
     /**
      * Submit the active skin revision to the configured Minecraft bridge.
      */
-    public function apply(Skin $skin, User $user): SyncResult
+    public function apply(Skin $skin, User $user, ?string $sourceUrl = null): SyncResult
     {
         $state = $this->currentSetState($skin, $user);
 
@@ -47,7 +47,7 @@ class SkinSynchronizer
         }
 
         try {
-            $command = $this->commands->setSkin($skin, $target['uuid']);
+            $command = $this->commands->setSkin($skin, $target['uuid'], $sourceUrl);
         } catch (SyncPreconditionException $exception) {
             return $this->record($state, SkinSyncState::STATUS_FAILED, $exception->reason);
         }

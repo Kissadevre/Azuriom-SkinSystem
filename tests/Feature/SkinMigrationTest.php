@@ -14,6 +14,7 @@ class SkinMigrationTest extends TestCase
         'skinsystem_sync_states',
         'skinsystem_sync_targets',
         'skinsystem_saved_skins',
+        'skinsystem_mineskin_generations',
     ];
 
     public function test_consolidated_migration_creates_and_drops_the_complete_schema(): void
@@ -46,6 +47,8 @@ class SkinMigrationTest extends TestCase
             'sha256',
             'variant',
             'resolved_variant',
+            'cape_id',
+            'delivery_strategy',
             'revision',
         ]));
         $this->assertTrue(Schema::hasColumns('skinsystem_sync_states', [
@@ -59,6 +62,16 @@ class SkinMigrationTest extends TestCase
             'clear_revision',
             'queued_clear_command_id',
             'clear_may_be_in_flight',
+        ]));
+        $this->assertTrue(Schema::hasColumns('skinsystem_mineskin_generations', [
+            'user_id',
+            'skin_revision',
+            'appearance_hash',
+            'status',
+            'job_id',
+            'result_uuid',
+            'result_url',
+            'next_poll_at',
         ]));
     }
 

@@ -34,6 +34,7 @@ class ManageSkin
         User $user,
         UploadedFile $file,
         string $variant,
+        ?string $capeId = null,
     ): array {
         $processed = $this->processor->process($file);
 
@@ -59,12 +60,20 @@ class ManageSkin
             $resolvedVariant,
             $path,
             $processed,
+            $capeId,
         ) {
             // The user row always exists and gives concurrent first uploads a
             // shared lock target before the unique skin row has been created.
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-            return $this->persistActive($user, $path, $processed['sha256'], $variant, $resolvedVariant);
+            return $this->persistActive(
+                $user,
+                $path,
+                $processed['sha256'],
+                $variant,
+                $resolvedVariant,
+                $capeId,
+            );
         }, self::TRANSACTION_ATTEMPTS);
     }
 
@@ -78,6 +87,7 @@ class ManageSkin
         string $name,
         int $libraryLimit,
         ?int $replacementId = null,
+        ?string $capeId = null,
     ): SavedSkin {
         $processed = $this->processor->process($file);
 
@@ -101,6 +111,7 @@ class ManageSkin
             $processed,
             $resolvedVariant,
             $path,
+            $capeId,
         ) {
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
@@ -108,6 +119,7 @@ class ManageSkin
                 ->where('user_id', $user->getKey())
                 ->where('sha256', $processed['sha256'])
                 ->where('variant', $variant)
+                ->where('cape_id', $capeId)
                 ->first();
 
             if ($saved !== null) {
@@ -138,6 +150,8 @@ class ManageSkin
                 'sha256' => $processed['sha256'],
                 'variant' => $variant,
                 'resolved_variant' => $resolvedVariant,
+                'cape_id' => $capeId,
+                'appearance_hash' => $this->appearanceHash($processed['sha256'], $variant, $capeId),
             ]);
         }, self::TRANSACTION_ATTEMPTS);
     }
@@ -163,6 +177,7 @@ class ManageSkin
                 $savedSkin->sha256,
                 $savedSkin->variant,
                 $savedSkin->resolved_variant,
+                $savedSkin->cape_id,
             );
         }, self::TRANSACTION_ATTEMPTS);
     }
@@ -246,6 +261,7 @@ class ManageSkin
         string $sha256,
         string $variant,
         string $resolvedVariant,
+        ?string $capeId = null,
     ): array {
         $previousState = SkinSyncState::query()
             ->where('user_id', $user->getKey())
@@ -253,11 +269,14 @@ class ManageSkin
             ->first();
 
         $skin = Skin::query()->where('user_id', $user->getKey())->first();
+        $deliveryStrategy = $this->settings->deliveryStrategyFor($capeId);
 
         if ($skin !== null
             && hash_equals($skin->sha256, $sha256)
             && $skin->variant === $variant
-            && $skin->resolved_variant === $resolvedVariant) {
+            && $skin->resolved_variant === $resolvedVariant
+            && $skin->cape_id === $capeId
+            && $skin->delivery_strategy === $deliveryStrategy) {
             return ['skin' => $skin, 'changed' => false];
         }
 
@@ -276,6 +295,8 @@ class ManageSkin
             'sha256' => $sha256,
             'variant' => $variant,
             'resolved_variant' => $resolvedVariant,
+            'cape_id' => $capeId,
+            'delivery_strategy' => $deliveryStrategy,
         ])->save();
 
         SkinRevision::query()->create([
@@ -284,6 +305,8 @@ class ManageSkin
             'file' => $skin->file,
             'sha256' => $skin->sha256,
             'resolved_variant' => $skin->resolved_variant,
+            'cape_id' => $skin->cape_id,
+            'delivery_strategy' => $skin->delivery_strategy,
         ]);
 
         if ($previousState !== null) {
@@ -314,6 +337,11 @@ class ManageSkin
         );
 
         return ['skin' => $skin, 'changed' => true];
+    }
+
+    private function appearanceHash(string $sha256, string $variant, ?string $capeId): string
+    {
+        return hash('sha256', $sha256.'|'.$variant.'|'.($capeId ?? 'none'));
     }
 
     private function forgetQueuedCommand(User $user, ?SkinSyncState $state = null): void

@@ -10,6 +10,7 @@ use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
 use Azuriom\Plugin\SkinSystem\Requests\StoreSkinRequest;
 use Azuriom\Plugin\SkinSystem\Services\ManageSkin;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
+use Azuriom\Plugin\SkinSystem\Services\SkinDeliveryService;
 use Azuriom\Plugin\SkinSystem\Services\SkinSynchronizer;
 use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Services\UserSkinLock;
@@ -27,11 +28,11 @@ class SkinController extends Controller
     public function store(
         StoreSkinRequest $request,
         ManageSkin $manager,
-        SkinSynchronizer $synchronizer,
+        SkinDeliveryService $delivery,
         UserSkinLock $lock,
         SkinSystemSettings $settings,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $synchronizer, $settings) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $delivery, $settings) {
             if ($request->string('action')->toString() === 'save') {
                 $manager->save(
                     $request->user(),
@@ -59,7 +60,7 @@ class SkinController extends Controller
 
             return $this->withSyncFeedback(
                 to_route('skinsystem.index'),
-                $synchronizer->apply($result['skin'], $request->user()),
+                $delivery->apply($result['skin'], $request->user()),
                 trans('skinsystem::messages.status.updated'),
             );
         });
@@ -69,10 +70,10 @@ class SkinController extends Controller
         Request $request,
         SavedSkin $savedSkin,
         ManageSkin $manager,
-        SkinSynchronizer $synchronizer,
+        SkinDeliveryService $delivery,
         UserSkinLock $lock,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $savedSkin, $manager, $synchronizer) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $savedSkin, $manager, $delivery) {
             $result = $manager->activate($request->user(), $savedSkin);
 
             if (! $result['changed']) {
@@ -81,7 +82,7 @@ class SkinController extends Controller
 
             return $this->withSyncFeedback(
                 to_route('skinsystem.index'),
-                $synchronizer->apply($result['skin'], $request->user()),
+                $delivery->apply($result['skin'], $request->user()),
                 trans('skinsystem::messages.status.activated'),
             );
         });
@@ -119,9 +120,10 @@ class SkinController extends Controller
     public function sync(
         Request $request,
         SkinSynchronizer $synchronizer,
+        SkinDeliveryService $delivery,
         UserSkinLock $lock,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $synchronizer) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $synchronizer, $delivery) {
             $skin = Skin::query()
                 ->where('user_id', $request->user()->getKey())
                 ->first();
@@ -129,7 +131,7 @@ class SkinController extends Controller
             if ($skin !== null) {
                 return $this->withSyncFeedback(
                     to_route('skinsystem.index'),
-                    $synchronizer->apply($skin, $request->user()),
+                    $delivery->apply($skin, $request->user(), true),
                 );
             }
 

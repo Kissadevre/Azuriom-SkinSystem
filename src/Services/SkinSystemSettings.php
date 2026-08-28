@@ -122,6 +122,17 @@ class SkinSystemSettings
             && $this->mineSkinCapesGranted();
     }
 
+    public function deliveryStrategyFor(?string $capeId): string
+    {
+        return match ($this->deliveryMode()) {
+            self::DELIVERY_MINESKIN => self::DELIVERY_MINESKIN,
+            self::DELIVERY_HYBRID => $capeId === null
+                ? self::DELIVERY_DIRECT
+                : self::DELIVERY_MINESKIN,
+            default => self::DELIVERY_DIRECT,
+        };
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Collection<int, \Azuriom\Models\Server>
      */
