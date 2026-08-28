@@ -33,6 +33,14 @@ return [
         'tab' => 'Current skin',
         'title' => 'Current website skin',
     ],
+    'capes' => [
+        'label' => 'MineSkin cape',
+        'help' => 'Optional. A cape uses the site\'s global MineSkin integration and may take a few seconds to generate.',
+        'none' => 'No cape',
+        'saved' => 'Saved cape',
+        'empty' => 'MineSkin did not return any supported capes for the configured key.',
+        'catalog_unavailable' => 'The MineSkin cape catalog is temporarily unavailable. You can still upload without a cape.',
+    ],
     'delete' => [
         'title' => 'Delete skin',
         'confirm' => 'Are you sure you want to remove your current website skin?',
@@ -45,6 +53,12 @@ return [
         'revision' => 'Revision',
         'sync_status' => 'Server synchronization',
         'last_dispatched_at' => 'Last dispatch attempt',
+        'cape' => 'Cape',
+        'delivery' => 'Delivery',
+    ],
+    'delivery' => [
+        'direct' => 'Direct URL',
+        'mineskin' => 'MineSkin',
     ],
     'variants' => [
         'auto' => 'Detect automatically',
@@ -124,6 +138,15 @@ return [
             'clear_may_be_in_flight' => 'A previous clear command may already be executing. The new skin command was submitted, but its final order cannot be confirmed; verify it in game and synchronize again if needed.',
             'stale_revision' => 'A newer skin revision replaced this request before it could be submitted. Reload the page and try again if needed.',
             'operation_busy' => 'Another skin operation is still running for your account. Wait a moment and try again.',
+            'mineskin_processing' => 'MineSkin is generating this appearance. This page will update automatically when it is ready.',
+            'mineskin_unavailable' => 'MineSkin is temporarily unavailable. SkinSystem will retry the queued operation automatically.',
+            'mineskin_rate_limited' => 'The global MineSkin key reached its current rate limit. SkinSystem will retry automatically.',
+            'mineskin_invalid_key' => 'MineSkin rejected the configured API key. Ask an administrator to verify the integration.',
+            'mineskin_request_rejected' => 'MineSkin rejected this skin or cape generation request.',
+            'mineskin_invalid_response' => 'MineSkin returned an unexpected response. The appearance was not submitted to Minecraft.',
+            'mineskin_generation_failed' => 'MineSkin could not generate this skin and cape combination. You can retry from Current skin.',
+            'mineskin_not_configured' => 'This appearance requires MineSkin, but no global API key is currently configured.',
+            'mineskin_source_missing' => 'The source PNG for this MineSkin operation is no longer available.',
         ],
     ],
     'validation' => [
@@ -137,5 +160,7 @@ return [
         'name_format' => 'The skin name may contain letters and numbers only.',
         'replacement_required' => 'Choose which saved skin should be replaced.',
         'replacement_invalid' => 'The selected saved skin does not belong to your library.',
+        'cape_unavailable' => 'Cape selection is not available for your account or the current SkinSystem configuration.',
+        'cape_invalid' => 'Choose a currently supported MineSkin cape.',
     ],
 ];

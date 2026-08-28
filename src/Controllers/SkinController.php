@@ -4,11 +4,13 @@ namespace Azuriom\Plugin\SkinSystem\Controllers;
 
 use Azuriom\Http\Controllers\Controller;
 use Azuriom\Models\User;
+use Azuriom\Plugin\SkinSystem\Models\MineSkinGeneration;
 use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
 use Azuriom\Plugin\SkinSystem\Requests\StoreSkinRequest;
 use Azuriom\Plugin\SkinSystem\Services\ManageSkin;
+use Azuriom\Plugin\SkinSystem\Services\SkinDeliveryService;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
 use Azuriom\Plugin\SkinSystem\Services\SkinSynchronizer;
 use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
@@ -16,8 +18,10 @@ use Azuriom\Plugin\SkinSystem\Services\UserSkinLock;
 use Azuriom\Plugin\SkinSystem\Support\SyncResult;
 use Closure;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class SkinController extends Controller
 {
@@ -27,11 +31,11 @@ class SkinController extends Controller
     public function store(
         StoreSkinRequest $request,
         ManageSkin $manager,
-        SkinSynchronizer $synchronizer,
+        SkinDeliveryService $delivery,
         UserSkinLock $lock,
         SkinSystemSettings $settings,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $synchronizer, $settings) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $manager, $delivery, $settings) {
             if ($request->string('action')->toString() === 'save') {
                 $manager->save(
                     $request->user(),
@@ -40,6 +44,7 @@ class SkinController extends Controller
                     $request->string('name')->toString(),
                     $settings->libraryLimit(),
                     $request->integer('replacement_id') ?: null,
+                    $request->filled('cape_id') ? $request->string('cape_id')->toString() : null,
                 );
 
                 return to_route('skinsystem.index')
@@ -50,6 +55,7 @@ class SkinController extends Controller
                 $request->user(),
                 $request->file('skin'),
                 $request->string('variant')->toString(),
+                $request->filled('cape_id') ? $request->string('cape_id')->toString() : null,
             );
 
             if (! $result['changed']) {
@@ -59,7 +65,7 @@ class SkinController extends Controller
 
             return $this->withSyncFeedback(
                 to_route('skinsystem.index'),
-                $synchronizer->apply($result['skin'], $request->user()),
+                $delivery->apply($result['skin'], $request->user()),
                 trans('skinsystem::messages.status.updated'),
             );
         });
@@ -69,10 +75,18 @@ class SkinController extends Controller
         Request $request,
         SavedSkin $savedSkin,
         ManageSkin $manager,
-        SkinSynchronizer $synchronizer,
+        SkinDeliveryService $delivery,
         UserSkinLock $lock,
+        SkinSystemSettings $settings,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $savedSkin, $manager, $synchronizer) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $savedSkin, $manager, $delivery, $settings) {
+            if ($savedSkin->cape_id !== null
+                && (! $settings->capeSelectionEnabled() || ! $request->user()->can('skinsystem.cape'))) {
+                throw ValidationException::withMessages([
+                    'cape_id' => trans('skinsystem::messages.validation.cape_unavailable'),
+                ]);
+            }
+
             $result = $manager->activate($request->user(), $savedSkin);
 
             if (! $result['changed']) {
@@ -81,7 +95,7 @@ class SkinController extends Controller
 
             return $this->withSyncFeedback(
                 to_route('skinsystem.index'),
-                $synchronizer->apply($result['skin'], $request->user()),
+                $delivery->apply($result['skin'], $request->user()),
                 trans('skinsystem::messages.status.activated'),
             );
         });
@@ -119,9 +133,10 @@ class SkinController extends Controller
     public function sync(
         Request $request,
         SkinSynchronizer $synchronizer,
+        SkinDeliveryService $delivery,
         UserSkinLock $lock,
     ): RedirectResponse {
-        return $this->withUserLock($request->user(), $lock, function () use ($request, $synchronizer) {
+        return $this->withUserLock($request->user(), $lock, function () use ($request, $synchronizer, $delivery) {
             $skin = Skin::query()
                 ->where('user_id', $request->user()->getKey())
                 ->first();
@@ -129,7 +144,7 @@ class SkinController extends Controller
             if ($skin !== null) {
                 return $this->withSyncFeedback(
                     to_route('skinsystem.index'),
-                    $synchronizer->apply($skin, $request->user()),
+                    $delivery->apply($skin, $request->user(), true),
                 );
             }
 
@@ -170,6 +185,54 @@ class SkinController extends Controller
                 'clear_submitted',
             );
         });
+    }
+
+    /**
+     * Advance an asynchronous MineSkin job for the current revision.
+     */
+    public function status(
+        Request $request,
+        SkinDeliveryService $delivery,
+        UserSkinLock $lock,
+    ): JsonResponse {
+        try {
+            return $lock->run($request->user(), function () use ($request, $delivery) {
+                $skin = Skin::query()
+                    ->where('user_id', $request->user()->getKey())
+                    ->first();
+
+                if ($skin === null) {
+                    return response()->json(['pending' => false, 'status' => null], 404);
+                }
+
+                $generation = MineSkinGeneration::query()
+                    ->where('user_id', $skin->user_id)
+                    ->where('skin_revision', $skin->revision)
+                    ->first();
+
+                if ($generation === null) {
+                    return response()->json(['pending' => false, 'status' => null]);
+                }
+
+                $result = $delivery->advanceAndApply($skin, $request->user());
+                $generation->refresh();
+
+                return response()->json([
+                    'pending' => in_array($generation->status, [
+                        MineSkinGeneration::STATUS_PENDING,
+                        MineSkinGeneration::STATUS_PROCESSING,
+                    ], true),
+                    'status' => $result->status,
+                    'error' => $result->error,
+                ]);
+            });
+        } catch (LockTimeoutException) {
+            return response()->json([
+                'pending' => true,
+                'status' => SkinSyncState::STATUS_PENDING,
+                'error' => 'operation_busy',
+            ], 409);
+        }
     }
 
     private function withUserLock(User $user, UserSkinLock $lock, Closure $callback): RedirectResponse

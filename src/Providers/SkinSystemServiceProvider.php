@@ -4,7 +4,10 @@ namespace Azuriom\Plugin\SkinSystem\Providers;
 
 use Azuriom\Extensions\Plugin\BasePluginServiceProvider;
 use Azuriom\Models\Permission;
+use Azuriom\Models\Setting;
 use Azuriom\Plugin\SkinSystem\Commands\CleanupSkinRevisions;
+use Azuriom\Plugin\SkinSystem\Commands\ProcessMineSkinGenerations;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
@@ -12,6 +15,14 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class SkinSystemServiceProvider extends BasePluginServiceProvider
 {
+    /**
+     * Register secrets before any setting value can be hydrated from storage.
+     */
+    public function register(): void
+    {
+        Setting::markAsEncrypted(SkinSystemSettings::MINESKIN_API_KEY_KEY);
+    }
+
     /**
      * Bootstrap the plugin services.
      */
@@ -28,7 +39,10 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
             $this->registerSchedule();
         }
 
-        $this->commands(CleanupSkinRevisions::class);
+        $this->commands([
+            CleanupSkinRevisions::class,
+            ProcessMineSkinGenerations::class,
+        ]);
 
         RateLimiter::for('skinsystem.images', function (Request $request) {
             return Limit::perMinute(300)->by($request->ip());
@@ -37,6 +51,7 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
         Permission::registerPermissions([
             'skinsystem.skin' => 'skinsystem::admin.permissions.skin',
             'skinsystem.library' => 'skinsystem::admin.permissions.library',
+            'skinsystem.cape' => 'skinsystem::admin.permissions.cape',
             'skinsystem.admin' => 'skinsystem::admin.permissions.admin',
         ]);
     }
@@ -46,6 +61,9 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('skinsystem:mineskin:process')
+            ->everyMinute()
+            ->withoutOverlapping(5);
         $schedule->command('skinsystem:cleanup')->daily()->withoutOverlapping(15);
     }
 

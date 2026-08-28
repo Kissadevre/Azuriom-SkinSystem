@@ -52,12 +52,12 @@
         </div>
     </div>
 
-    @unless($httpsReady)
+    @if(!$httpsReady && $deliveryMode !== \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DELIVERY_MINESKIN)
         <div class="alert alert-danger" role="alert">
             <i class="bi bi-shield-exclamation me-2" aria-hidden="true"></i>
             {{ trans('skinsystem::admin.requirements.https_warning') }}
         </div>
-    @endunless
+    @endif
 
     @if($servers->isEmpty())
         <div class="alert alert-warning" role="alert">
@@ -69,6 +69,95 @@
     <form method="POST" action="{{ route('skinsystem.admin.update') }}">
         @csrf
         @method('PUT')
+        <input type="hidden" name="remove_mineskin_api_key" value="0">
+
+        <section class="card skinsystem-admin-card mb-4">
+            <div class="card-header skinsystem-admin-card-header">
+                <span class="skinsystem-admin-icon text-info bg-info bg-opacity-10">
+                    <i class="bi bi-signpost-split" aria-hidden="true"></i>
+                </span>
+                <div>
+                    <h2 class="h5 mb-1">{{ trans('skinsystem::admin.delivery.title') }}</h2>
+                    <p class="text-muted small mb-0">{{ trans('skinsystem::admin.delivery.description') }}</p>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="skinsystem-delivery-grid mb-4">
+                    @foreach(\Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::deliveryModes() as $mode)
+                        <label class="skinsystem-delivery-option">
+                            <input class="form-check-input"
+                                   type="radio"
+                                   name="delivery_mode"
+                                   value="{{ $mode }}"
+                                   @checked(old('delivery_mode', $deliveryMode) === $mode)>
+                            <span>
+                                <strong>{{ trans('skinsystem::admin.delivery.modes.'.$mode.'.title') }}</strong>
+                                <small>{{ trans('skinsystem::admin.delivery.modes.'.$mode.'.description') }}</small>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+                @error('delivery_mode')
+                    <div class="text-danger small mb-3">{{ $message }}</div>
+                @enderror
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-8">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <label class="form-label fw-semibold mb-0" for="mineSkinApiKey">
+                                {{ trans('skinsystem::admin.delivery.api_key') }}
+                            </label>
+                            @if($hasMineSkinApiKey)
+                                <span class="badge text-bg-success">{{ trans('skinsystem::admin.delivery.key_configured') }}</span>
+                            @else
+                                <span class="badge text-bg-secondary">{{ trans('skinsystem::admin.delivery.key_missing') }}</span>
+                            @endif
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key" aria-hidden="true"></i></span>
+                            <input class="form-control @error('mineskin_api_key') is-invalid @enderror"
+                                   type="password"
+                                   id="mineSkinApiKey"
+                                   name="mineskin_api_key"
+                                   value=""
+                                   maxlength="512"
+                                   autocomplete="new-password"
+                                   placeholder="{{ $hasMineSkinApiKey ? trans('skinsystem::admin.delivery.key_keep_placeholder') : trans('skinsystem::admin.delivery.key_placeholder') }}"
+                                   aria-describedby="mineSkinApiKeyHelp">
+                            @error('mineskin_api_key')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-text" id="mineSkinApiKeyHelp">
+                            {{ trans('skinsystem::admin.delivery.api_key_help') }}
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        @if($hasMineSkinApiKey)
+                            <div class="d-flex flex-column gap-2">
+                                <div class="small {{ $mineSkinCapesGranted ? 'text-success' : 'text-warning' }}">
+                                    <i class="bi {{ $mineSkinCapesGranted ? 'bi-check-circle' : 'bi-exclamation-triangle' }} me-1" aria-hidden="true"></i>
+                                    {{ trans($mineSkinCapesGranted
+                                        ? 'skinsystem::admin.delivery.capes_available'
+                                        : 'skinsystem::admin.delivery.capes_unavailable') }}
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="remove_mineskin_api_key" value="1" id="removeMineSkinApiKey">
+                                    <label class="form-check-label text-danger" for="removeMineSkinApiKey">
+                                        {{ trans('skinsystem::admin.delivery.remove_key') }}
+                                    </label>
+                                </div>
+                            </div>
+                        @else
+                            <div class="small text-muted">
+                                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>
+                                {{ trans('skinsystem::admin.delivery.cape_hidden_without_key') }}
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <div class="row g-4 align-items-stretch mb-4">
             <div class="col-xl-7">

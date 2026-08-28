@@ -50,6 +50,23 @@ class SkinLibraryTest extends TestCase
         $this->assertFalse(Validator::make($request->all(), $request->rules(), $request->messages())->fails());
     }
 
+    public function test_a_hidden_cape_field_cannot_be_submitted_without_capability(): void
+    {
+        $user = $this->createUser();
+        $request = StoreSkinRequest::create('/', 'POST', [
+            'action' => 'activate',
+            'variant' => Skin::VARIANT_CLASSIC,
+            'cape_id' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ], [], ['skin' => $this->uploadedSkin(45)]);
+        $request->setContainer($this->app);
+        $request->setUserResolver(fn () => $user);
+
+        $validator = Validator::make($request->all(), $request->rules(), $request->messages());
+
+        $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey('cape_id', $validator->errors()->toArray());
+    }
+
     public function test_library_limit_uses_a_safe_default_and_accepts_valid_admin_values(): void
     {
         $settings = app(SkinSystemSettings::class);
@@ -117,6 +134,44 @@ class SkinLibraryTest extends TestCase
 
         $this->assertSame(0, SavedSkin::query()->count());
         $this->assertSame($activeId, Skin::query()->sole()->id);
+    }
+
+    public function test_same_png_can_be_saved_with_distinct_capes_and_activated_with_its_metadata(): void
+    {
+        $user = $this->createUser();
+        $settings = new ConfigurableSkinSystemSettings;
+        $settings->selectedDeliveryMode = SkinSystemSettings::DELIVERY_HYBRID;
+        $manager = new ManageSkin(
+            app(SkinProcessor::class),
+            app(SkinStorage::class),
+            $settings,
+            app(SkinsRestorerCommandBuilder::class),
+            app(SkinSyncTargetRegistry::class),
+        );
+
+        $plain = $manager->save(
+            $user,
+            $this->uploadedSkin(45),
+            Skin::VARIANT_CLASSIC,
+            'Plain',
+            3,
+        );
+        $caped = $manager->save(
+            $user,
+            $this->uploadedSkin(45),
+            Skin::VARIANT_CLASSIC,
+            'Caped',
+            3,
+            capeId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        );
+
+        $this->assertNotSame($plain->appearance_hash, $caped->appearance_hash);
+        $this->assertSame(2, SavedSkin::query()->count());
+
+        $active = $manager->activate($user, $caped)['skin'];
+
+        $this->assertSame($caped->cape_id, $active->cape_id);
+        $this->assertSame(SkinSystemSettings::DELIVERY_MINESKIN, $active->delivery_strategy);
     }
 
     private function manager(): ManageSkin

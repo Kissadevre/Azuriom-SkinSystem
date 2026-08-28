@@ -16,6 +16,8 @@ class SavedSkin extends Model
         'sha256',
         'variant',
         'resolved_variant',
+        'cape_id',
+        'appearance_hash',
     ];
 
     public function user()

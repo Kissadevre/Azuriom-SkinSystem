@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $file
  * @property string $sha256
  * @property string $resolved_variant
+ * @property string|null $cape_id
+ * @property string $delivery_strategy
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  */
@@ -28,6 +30,8 @@ class SkinRevision extends Model
         'file',
         'sha256',
         'resolved_variant',
+        'cape_id',
+        'delivery_strategy',
     ];
 
     /**

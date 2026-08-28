@@ -3,7 +3,7 @@
 return [
     'title' => 'SkinSystem',
     'description' => 'Conecta las skins subidas en Azuriom con un servidor autoritativo de SkinsRestorer.',
-    'updated' => 'La configuración de sincronización de SkinSystem se guardó correctamente.',
+    'updated' => 'La configuración de SkinSystem se guardó correctamente.',
     'nav' => [
         'settings' => 'Ajustes',
         'information' => 'Información',
@@ -15,6 +15,34 @@ return [
         'total' => 'Skins activas en el sitio',
         'submitted' => 'Última operación enviada',
         'attention' => 'Requieren atención',
+    ],
+    'delivery' => [
+        'title' => 'Modo de distribución de skins',
+        'description' => 'Elige cuándo SkinSystem envía su URL inmutable y cuándo genera primero un resultado mediante MineSkin.',
+        'modes' => [
+            'direct' => [
+                'title' => 'Directo',
+                'description' => 'Siempre envía a SkinsRestorer la URL HTTPS del PNG de SkinSystem. No admite capas.',
+            ],
+            'mineskin' => [
+                'title' => 'MineSkin',
+                'description' => 'Genera cada apariencia activa mediante MineSkin antes de enviarla a SkinsRestorer.',
+            ],
+            'hybrid' => [
+                'title' => 'Híbrido',
+                'description' => 'Usa el modo directo normalmente y MineSkin solamente cuando el jugador elige una capa.',
+            ],
+        ],
+        'api_key' => 'Clave API global de MineSkin',
+        'api_key_help' => 'La clave se valida antes de guardarse, se cifra en la base de datos y nunca se expone a jugadores ni a JavaScript.',
+        'key_configured' => 'Configurada',
+        'key_missing' => 'Sin configurar',
+        'key_placeholder' => 'Pega una clave API de MineSkin',
+        'key_keep_placeholder' => 'Déjalo vacío para conservar la clave actual',
+        'remove_key' => 'Eliminar la clave API almacenada',
+        'capes_available' => 'Esta clave incluye acceso a la generación con capas.',
+        'capes_unavailable' => 'Esta clave no incluye actualmente el permiso de capas.',
+        'cape_hidden_without_key' => 'Los jugadores no verán el selector de capas hasta configurar una clave compatible.',
     ],
     'settings' => [
         'title' => 'Configuración de sincronización',
@@ -52,8 +80,8 @@ return [
         'skin_api' => 'Si Skin API continúa instalado, desactiva la opción heredada skinrestorer-integration de AzLink para evitar que su listener de ingreso sobrescriba SkinSystem.',
         'proxy' => 'En modo proxy con BungeeCord o Velocity, selecciona el AzLink/servidor del proxy donde SkinsRestorer administra sus datos; la consola de un backend no es autoritativa.',
         'cache_lock' => 'En instalaciones de Azuriom con varios nodos, usa una caché compartida como Redis o database para que los bloqueos por usuario funcionen en todos los nodos.',
-        'scheduler' => 'Ejecuta el programador de Azuriom para eliminar revisiones reemplazadas después de la ventana de seguridad de 30 días.',
-        'https_warning' => 'La URL configurada del sitio no usa HTTPS. Las skins se guardarán, pero SkinSystem se negará a enviar una URL insegura a SkinsRestorer.',
+        'scheduler' => 'Ejecuta el programador de Azuriom cada minuto para completar trabajos de MineSkin en segundo plano y eliminar archivos reemplazados después de la ventana de seguridad de 30 días.',
+        'https_warning' => 'La URL configurada del sitio no usa HTTPS. Las skins de los modos Directo e Híbrido se guardarán, pero SkinSystem no enviará una URL insegura a SkinsRestorer.',
         'submitted_semantics' => '“Enviado” significa que Azuriom entregó uno o varios comandos a RCON o los dejó en la cola de AzLink. No demuestra su ejecución; las limpiezas conservadas pueden reenviarse de forma segura.',
     ],
     'credits' => [
@@ -83,6 +111,10 @@ return [
             'name' => 'AzLink',
             'role' => 'Puente de comandos entre Azuriom y Minecraft',
         ],
+        'mineskin' => [
+            'name' => 'MineSkin',
+            'role' => 'Servicio de generación firmada de skins y capas opcionales',
+        ],
         'original' => [
             'name' => 'SkinSystem original',
             'role' => 'Proyecto original y concepto de migración',
@@ -103,10 +135,14 @@ return [
         'library_limit_integer' => 'El límite de skins guardadas solo puede contener números enteros.',
         'library_limit_min' => 'El límite de skins guardadas debe ser como mínimo 1.',
         'library_limit_max' => 'El límite de skins guardadas no puede superar 100.',
+        'mineskin_key_required' => 'El modo MineSkin requiere una clave API global de MineSkin válida.',
+        'mineskin_invalid_key' => 'MineSkin rechazó esta clave API. Verifícala en tu cuenta de MineSkin e inténtalo de nuevo.',
+        'mineskin_unavailable' => 'SkinSystem no pudo validar la clave porque MineSkin no está disponible. No se modificó ningún ajuste de MineSkin.',
     ],
     'permissions' => [
         'skin' => 'Subir y administrar su propia skin de Minecraft',
         'library' => 'Guardar y alternar skins desde su biblioteca personal',
+        'cape' => 'Elegir capas de MineSkin cuando el administrador las habilite',
         'admin' => 'Administrar la configuración de SkinSystem',
     ],
 ];

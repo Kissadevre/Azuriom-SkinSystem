@@ -15,6 +15,9 @@
         const viewerError = document.querySelector('[data-viewer-error]');
         const fileInput = form.querySelector('#skinInput');
         const variantInputs = form.querySelectorAll('input[name="variant"]');
+        const capeInput = form.querySelector('#capeInput');
+        const capePreview = form.querySelector('[data-cape-preview]');
+        const capePreviewImage = form.querySelector('[data-cape-preview-image]');
         const dropzone = form.querySelector('[data-skin-dropzone]');
         const dropzoneCopy = form.querySelector('[data-dropzone-copy]');
         const selection = form.querySelector('[data-selected-file]');
@@ -30,6 +33,7 @@
         let previewUrl = root.dataset.skinUrl || null;
         let objectUrl = null;
         let viewer = null;
+        let pollingStopped = false;
 
         if (saveModal) {
             const nameInput = saveModal.querySelector('#skinName');
@@ -112,12 +116,53 @@
 
             try {
                 await viewer.loadSkin(url, { model: selectedModel() });
+                await loadCape();
                 setViewerState('ready');
             } catch (exception) {
                 viewer.resetSkin();
                 setViewerState('empty');
                 showViewerError(true);
             }
+        }
+
+        function selectedCapeUrl() {
+            if (!capeInput) {
+                return root.dataset.capeUrl || '';
+            }
+
+            const option = capeInput.options[capeInput.selectedIndex];
+
+            return option ? option.dataset.capeUrl || '' : '';
+        }
+
+        async function loadCape() {
+            if (!viewer) {
+                return;
+            }
+
+            const url = selectedCapeUrl();
+
+            if (!url) {
+                if (typeof viewer.resetCape === 'function') viewer.resetCape();
+                return;
+            }
+
+            await viewer.loadCape(url);
+        }
+
+        function updateCapeSelection() {
+            const url = selectedCapeUrl();
+
+            if (capePreviewImage && capePreview) {
+                capePreviewImage.src = url;
+                capePreviewImage.hidden = !url;
+                const icon = capePreview.querySelector('i');
+                if (icon) icon.hidden = Boolean(url);
+            }
+
+            loadCape().catch(function () {
+                if (viewer && typeof viewer.resetCape === 'function') viewer.resetCape();
+            });
         }
 
         function formatFileSize(bytes) {
@@ -235,6 +280,11 @@
             });
         });
 
+        if (capeInput) {
+            capeInput.addEventListener('change', updateCapeSelection);
+            updateCapeSelection();
+        }
+
         if (dropzone) {
             ['dragenter', 'dragover'].forEach(function (eventName) {
                 dropzone.addEventListener(eventName, function (event) {
@@ -298,6 +348,7 @@
         }
 
         window.addEventListener('pagehide', function () {
+            pollingStopped = true;
             if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
             }
@@ -311,5 +362,44 @@
         if (saveOpenButton) saveOpenButton.disabled = !fileInput.files.length;
         resizeViewer();
         loadSkin(previewUrl);
+
+        function pollGeneration() {
+            if (pollingStopped || !root.hasAttribute('data-generation-pending') || !root.dataset.statusUrl) {
+                return;
+            }
+
+            const token = document.querySelector('meta[name="csrf-token"]');
+            const headers = {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+
+            if (token) headers['X-CSRF-TOKEN'] = token.content;
+
+            window.setTimeout(function () {
+                fetch(root.dataset.statusUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: headers,
+                }).then(function (response) {
+                    if (!response.ok && response.status !== 409) {
+                        throw new Error('MineSkin status request failed.');
+                    }
+
+                    return response.json();
+                }).then(function (payload) {
+                    if (payload.pending) {
+                        pollGeneration();
+                        return;
+                    }
+
+                    window.location.reload();
+                }).catch(function () {
+                    if (!pollingStopped) window.setTimeout(pollGeneration, 10000);
+                });
+            }, 3000);
+        }
+
+        pollGeneration();
     });
 })();

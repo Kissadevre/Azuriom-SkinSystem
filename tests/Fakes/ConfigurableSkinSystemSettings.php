@@ -11,6 +11,10 @@ class ConfigurableSkinSystemSettings extends SkinSystemSettings
 
     public ?int $selectedServerId = null;
 
+    public string $selectedDeliveryMode = self::DELIVERY_DIRECT;
+
+    public ?string $configuredMineSkinApiKey = null;
+
     public function enabled(): bool
     {
         return $this->syncEnabled;
@@ -19,6 +23,16 @@ class ConfigurableSkinSystemSettings extends SkinSystemSettings
     public function serverId(): ?int
     {
         return $this->selectedServerId;
+    }
+
+    public function deliveryMode(): string
+    {
+        return $this->selectedDeliveryMode;
+    }
+
+    public function mineSkinApiKey(): ?string
+    {
+        return $this->configuredMineSkinApiKey;
     }
 
     public function findServer(int $serverId): ?Server

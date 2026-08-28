@@ -2,9 +2,11 @@
 
 namespace Azuriom\Plugin\SkinSystem\Requests;
 
+use Azuriom\Plugin\SkinSystem\Exceptions\MineSkinApiException;
 use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Rules\MinecraftSkin;
+use Azuriom\Plugin\SkinSystem\Services\MineSkinCapeCatalog;
 use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,6 +32,19 @@ class StoreSkinRequest extends FormRequest
      */
     public function rules(): array
     {
+        $capeAllowed = app(SkinSystemSettings::class)->capeSelectionEnabled()
+            && ($this->user()?->can('skinsystem.cape') ?? false);
+        $capeIds = [];
+
+        if ($capeAllowed) {
+            try {
+                $capeIds = array_column(app(MineSkinCapeCatalog::class)->all(), 'uuid');
+            } catch (MineSkinApiException) {
+                // Reject a cape selection when the authoritative catalog cannot
+                // be refreshed. A no-cape upload remains fully available.
+            }
+        }
+
         return [
             'action' => ['required', Rule::in(['activate', 'save'])],
             'skin' => [
@@ -43,6 +58,13 @@ class StoreSkinRequest extends FormRequest
             'variant' => [
                 'required',
                 Rule::in(Skin::variants()),
+            ],
+            'cape_id' => [
+                Rule::prohibitedIf(! $capeAllowed),
+                'nullable',
+                'string',
+                'max:64',
+                Rule::in($capeIds),
             ],
             'name' => [
                 Rule::excludeIf($this->input('action') !== 'save'),
@@ -72,6 +94,8 @@ class StoreSkinRequest extends FormRequest
             'name.regex' => trans('skinsystem::messages.validation.name_format'),
             'replacement_id.required' => trans('skinsystem::messages.validation.replacement_required'),
             'replacement_id.exists' => trans('skinsystem::messages.validation.replacement_invalid'),
+            'cape_id.prohibited' => trans('skinsystem::messages.validation.cape_unavailable'),
+            'cape_id.in' => trans('skinsystem::messages.validation.cape_invalid'),
         ];
     }
 

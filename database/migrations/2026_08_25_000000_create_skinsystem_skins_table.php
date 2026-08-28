@@ -18,6 +18,8 @@ return new class extends Migration
             $table->char('sha256', 64)->index();
             $table->string('variant', 16)->default('auto');
             $table->string('resolved_variant', 16)->default('classic');
+            $table->string('cape_id', 64)->nullable();
+            $table->string('delivery_strategy', 16)->default('direct');
             $table->unsignedInteger('revision')->default(1);
             $table->timestamps();
 
@@ -34,6 +36,8 @@ return new class extends Migration
             $table->string('file');
             $table->char('sha256', 64);
             $table->string('resolved_variant', 16);
+            $table->string('cape_id', 64)->nullable();
+            $table->string('delivery_strategy', 16)->default('direct');
             $table->timestamps();
 
             $table->unique(['user_id', 'revision']);
@@ -87,9 +91,31 @@ return new class extends Migration
             $table->char('sha256', 64)->index();
             $table->string('variant', 16)->default('auto');
             $table->string('resolved_variant', 16)->default('classic');
+            $table->string('cape_id', 64)->nullable();
+            $table->char('appearance_hash', 64);
             $table->timestamps();
 
-            $table->unique(['user_id', 'sha256', 'variant'], 'skinsystem_saved_skins_unique');
+            $table->unique(['user_id', 'appearance_hash'], 'skinsystem_saved_skins_unique');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
+
+        Schema::create('skinsystem_mineskin_generations', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id');
+            $table->unsignedInteger('skin_revision');
+            $table->char('appearance_hash', 64)->index();
+            $table->string('status', 24)->default('pending')->index();
+            $table->string('job_id', 64)->nullable()->unique();
+            $table->string('result_uuid', 64)->nullable();
+            $table->string('result_url', 512)->nullable();
+            $table->string('error', 64)->nullable();
+            $table->unsignedSmallInteger('attempts')->default(0);
+            $table->timestamp('next_poll_at')->nullable()->index();
+            $table->timestamp('last_polled_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['user_id', 'skin_revision'], 'skinsystem_mineskin_revision_unique');
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
@@ -99,6 +125,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('skinsystem_mineskin_generations');
         Schema::dropIfExists('skinsystem_saved_skins');
         Schema::dropIfExists('skinsystem_sync_targets');
         Schema::dropIfExists('skinsystem_sync_states');

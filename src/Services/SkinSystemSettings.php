@@ -16,6 +16,20 @@ class SkinSystemSettings
 
     public const LIBRARY_LIMIT_KEY = 'skinsystem.library_limit';
 
+    public const DELIVERY_MODE_KEY = 'skinsystem.delivery_mode';
+
+    public const MINESKIN_API_KEY_KEY = 'skinsystem.mineskin_api_key';
+
+    public const MINESKIN_VERIFIED_AT_KEY = 'skinsystem.mineskin_verified_at';
+
+    public const MINESKIN_CAPES_GRANTED_KEY = 'skinsystem.mineskin_capes_granted';
+
+    public const DELIVERY_DIRECT = 'direct';
+
+    public const DELIVERY_MINESKIN = 'mineskin';
+
+    public const DELIVERY_HYBRID = 'hybrid';
+
     public const DEFAULT_LIBRARY_LIMIT = 10;
 
     public const MAX_LIBRARY_LIMIT = 100;
@@ -53,6 +67,70 @@ class SkinSystemSettings
         ]);
 
         return $value === false ? self::DEFAULT_LIBRARY_LIMIT : $value;
+    }
+
+    /**
+     * Return the configured delivery strategy. Direct remains the default so
+     * upgrading an existing installation never introduces a third-party call.
+     */
+    public function deliveryMode(): string
+    {
+        $mode = setting(self::DELIVERY_MODE_KEY, self::DELIVERY_DIRECT);
+
+        return is_string($mode) && in_array($mode, self::deliveryModes(), true)
+            ? $mode
+            : self::DELIVERY_DIRECT;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function deliveryModes(): array
+    {
+        return [
+            self::DELIVERY_DIRECT,
+            self::DELIVERY_MINESKIN,
+            self::DELIVERY_HYBRID,
+        ];
+    }
+
+    public function mineSkinApiKey(): ?string
+    {
+        $key = setting(self::MINESKIN_API_KEY_KEY);
+
+        if (! is_string($key) || trim($key) === '') {
+            return null;
+        }
+
+        return trim($key);
+    }
+
+    public function hasMineSkinApiKey(): bool
+    {
+        return $this->mineSkinApiKey() !== null;
+    }
+
+    public function mineSkinCapesGranted(): bool
+    {
+        return $this->hasMineSkinApiKey()
+            && filter_var(setting(self::MINESKIN_CAPES_GRANTED_KEY, false), FILTER_VALIDATE_BOOL);
+    }
+
+    public function capeSelectionEnabled(): bool
+    {
+        return $this->deliveryMode() !== self::DELIVERY_DIRECT
+            && $this->mineSkinCapesGranted();
+    }
+
+    public function deliveryStrategyFor(?string $capeId): string
+    {
+        return match ($this->deliveryMode()) {
+            self::DELIVERY_MINESKIN => self::DELIVERY_MINESKIN,
+            self::DELIVERY_HYBRID => $capeId === null
+                ? self::DELIVERY_DIRECT
+                : self::DELIVERY_MINESKIN,
+            default => self::DELIVERY_DIRECT,
+        };
     }
 
     /**
