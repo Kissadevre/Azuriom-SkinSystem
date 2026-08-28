@@ -94,7 +94,9 @@ From `plugins/skinsystem`, run:
 ../../vendor/bin/phpunit --configuration phpunit.xml
 ```
 
-The suite covers upload lifecycle, immutable endpoint aliases and overflow input, migration backfills, multi-target snapshots, AzLink fetch/cancel races, exact queue ownership, partial clear failures, stale clear generations, RCON uncertainty, cleanup, URL safety, and per-user lock contention.
+The suite covers upload lifecycle, immutable endpoint aliases and overflow input, migration portability and legacy-schema adoption, multi-target snapshots, AzLink fetch/cancel races, exact queue ownership, partial clear failures, stale clear generations, RCON uncertainty, cleanup, URL safety, and per-user lock contention.
+
+Each schema change must be shipped as a new dated anonymous migration. Previously released migrations are immutable and must not be edited to add later columns or tables. The original consolidated migration name remains as an empty compatibility bridge for installations that already recorded it; the six baseline tables are owned by separate migrations and each migration reverses only its own table.
 
 ## Architecture boundaries
 
