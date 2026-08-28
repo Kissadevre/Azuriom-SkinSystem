@@ -8,10 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('skinsystem_mineskin_generations')) {
-            return;
-        }
-
         Schema::create('skinsystem_mineskin_generations', function (Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('user_id');
