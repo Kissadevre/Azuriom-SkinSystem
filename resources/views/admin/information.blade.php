@@ -73,6 +73,7 @@
             ['key' => 'bootstrap', 'icon' => 'bi-bootstrap', 'url' => 'https://getbootstrap.com'],
             ['key' => 'skinview3d', 'icon' => 'bi-person-bounding-box', 'url' => 'https://github.com/bs-community/skinview3d'],
             ['key' => 'skinsrestorer', 'icon' => 'bi-controller', 'url' => 'https://github.com/SkinsRestorer/SkinsRestorer'],
+            ['key' => 'mineskin', 'icon' => 'bi-wind', 'url' => 'https://mineskin.org'],
             ['key' => 'azlink', 'icon' => 'bi-hdd-network', 'url' => 'https://github.com/Azuriom/AzLink'],
             ['key' => 'original', 'icon' => 'bi-git', 'url' => 'https://github.com/SkinsRestorer/SkinSystem'],
             ['key' => 'skin_api', 'icon' => 'bi-plug', 'url' => 'https://github.com/AzuriomCommunity/Plugin-SkinAPI'],

@@ -3,8 +3,8 @@
 namespace Azuriom\Plugin\SkinSystem\Services;
 
 use Azuriom\Plugin\SkinSystem\Exceptions\MineSkinApiException;
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
@@ -89,6 +89,54 @@ class MineSkinClient
         return $this->normalizeGenerationResponse($response->json(), $jobId);
     }
 
+    /**
+     * @return array<int, array{uuid: string, alias: string, url: string}>
+     */
+    public function capes(string $apiKey): array
+    {
+        try {
+            $response = $this->request($apiKey)->get(self::BASE_URL.'/capes');
+        } catch (ConnectionException) {
+            throw new MineSkinApiException('unavailable', true);
+        }
+
+        $this->ensureGenerationResponse($response);
+        $capes = $response->json('capes', []);
+
+        if (! is_array($capes)) {
+            throw new MineSkinApiException('invalid_response');
+        }
+
+        return collect($capes)
+            ->filter(fn ($cape) => is_array($cape) && data_get($cape, 'supported') === true)
+            ->map(function (array $cape) {
+                $uuid = data_get($cape, 'uuid');
+                $alias = trim((string) data_get($cape, 'alias'));
+                $url = (string) data_get($cape, 'url');
+
+                if (str_starts_with(strtolower($url), 'http://')) {
+                    $url = 'https://'.substr($url, 7);
+                }
+
+                if (! is_string($uuid)
+                    || preg_match('/^(?:[a-fA-F0-9]{32}|[a-fA-F0-9-]{36})$/D', $uuid) !== 1
+                    || $alias === ''
+                    || mb_strlen($alias) > 64
+                    || ! $this->isSafeCapeUrl($url)) {
+                    return null;
+                }
+
+                return [
+                    'uuid' => strtolower($uuid),
+                    'alias' => $alias,
+                    'url' => $url,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     private function request(string $apiKey): PendingRequest
     {
         return Http::withToken($apiKey)
@@ -117,6 +165,12 @@ class MineSkinClient
 
         if (! is_array($response->json())) {
             throw new MineSkinApiException('invalid_response');
+        }
+
+        if ($response->json('success') === false) {
+            $status = strtolower((string) $response->json('job.status'));
+
+            throw new MineSkinApiException($status === 'failed' ? 'generation_failed' : 'request_rejected');
         }
     }
 
@@ -181,6 +235,23 @@ class MineSkinClient
         return is_string($jobId) && preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $jobId) === 1
             ? $jobId
             : null;
+    }
+
+    private function isSafeCapeUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+
+        if (! is_array($parts)
+            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || ! isset($parts['host'])
+            || isset($parts['user'])
+            || isset($parts['pass'])) {
+            return false;
+        }
+
+        $host = strtolower($parts['host']);
+
+        return $host === 'textures.minecraft.net' || str_ends_with($host, '.minecraft.net');
     }
 
     private function userAgent(): string

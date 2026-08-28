@@ -6,6 +6,8 @@ use Azuriom\Extensions\Plugin\BasePluginServiceProvider;
 use Azuriom\Models\Permission;
 use Azuriom\Models\Setting;
 use Azuriom\Plugin\SkinSystem\Commands\CleanupSkinRevisions;
+use Azuriom\Plugin\SkinSystem\Commands\ProcessMineSkinGenerations;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
@@ -37,7 +39,10 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
             $this->registerSchedule();
         }
 
-        $this->commands(CleanupSkinRevisions::class);
+        $this->commands([
+            CleanupSkinRevisions::class,
+            ProcessMineSkinGenerations::class,
+        ]);
 
         RateLimiter::for('skinsystem.images', function (Request $request) {
             return Limit::perMinute(300)->by($request->ip());
@@ -56,6 +61,9 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('skinsystem:mineskin:process')
+            ->everyMinute()
+            ->withoutOverlapping(5);
         $schedule->command('skinsystem:cleanup')->daily()->withoutOverlapping(15);
     }
 

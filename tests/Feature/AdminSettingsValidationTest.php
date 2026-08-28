@@ -2,8 +2,12 @@
 
 namespace Azuriom\Plugin\SkinSystem\Tests\Feature;
 
+use Azuriom\Models\Setting;
+use Azuriom\Plugin\SkinSystem\Providers\SkinSystemServiceProvider;
 use Azuriom\Plugin\SkinSystem\Requests\UpdateSettingsRequest;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\TestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class AdminSettingsValidationTest extends TestCase
@@ -54,6 +58,35 @@ class AdminSettingsValidationTest extends TestCase
         $request = $this->settingsRequest(['delivery_mode' => 'automatic']);
 
         $this->assertTrue(Validator::make($request->all(), $request->rules())->fails());
+    }
+
+    public function test_global_mineskin_key_is_encrypted_at_rest(): void
+    {
+        (new SkinSystemServiceProvider($this->app))->register();
+
+        Setting::updateSettings([
+            SkinSystemSettings::MINESKIN_API_KEY_KEY => 'msk_plaintext_secret',
+        ]);
+
+        $stored = DB::table('settings')
+            ->where('name', SkinSystemSettings::MINESKIN_API_KEY_KEY)
+            ->value('value');
+
+        $this->assertNotSame('msk_plaintext_secret', $stored);
+        $this->assertSame(
+            'msk_plaintext_secret',
+            app(SkinSystemSettings::class)->mineSkinApiKey(),
+        );
+    }
+
+    public function test_mineskin_only_mode_requires_a_global_key(): void
+    {
+        $request = $this->settingsRequest(['delivery_mode' => SkinSystemSettings::DELIVERY_MINESKIN]);
+        $validator = Validator::make($request->all(), $request->rules(), $request->messages());
+        $request->withValidator($validator);
+
+        $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey('mineskin_api_key', $validator->errors()->toArray());
     }
 
     private function settingsRequest(array $overrides = []): UpdateSettingsRequest

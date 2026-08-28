@@ -4,12 +4,12 @@ namespace Azuriom\Plugin\SkinSystem\Controllers\Admin;
 
 use Azuriom\Http\Controllers\Controller;
 use Azuriom\Models\Setting;
+use Azuriom\Plugin\SkinSystem\Exceptions\MineSkinApiException;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
-use Azuriom\Plugin\SkinSystem\Exceptions\MineSkinApiException;
 use Azuriom\Plugin\SkinSystem\Requests\UpdateSettingsRequest;
-use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Services\MineSkinClient;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Illuminate\Http\RedirectResponse;
 
 class AdminController extends Controller
@@ -58,8 +58,7 @@ class AdminController extends Controller
         UpdateSettingsRequest $request,
         SkinSystemSettings $settings,
         MineSkinClient $mineSkin,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $data = $request->validated();
 
         $newApiKey = trim((string) ($data['mineskin_api_key'] ?? ''));

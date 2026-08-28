@@ -80,8 +80,8 @@ return [
         'skin_api' => 'If Skin API remains installed, disable AzLink\'s legacy skinrestorer-integration option so its join listener does not overwrite SkinSystem.',
         'proxy' => 'For BungeeCord or Velocity proxy mode, select the proxy-side AzLink/server where SkinsRestorer owns its player storage; a backend console is not authoritative.',
         'cache_lock' => 'On multi-node Azuriom installations, use a shared cache store such as Redis or database so per-user synchronization locks work across every node.',
-        'scheduler' => 'Run Azuriom\'s scheduler so superseded revision files are cleaned after the 30-day safety window.',
-        'https_warning' => 'The configured site URL is not HTTPS. Skin uploads will be saved, but SkinSystem will refuse to submit an insecure URL to SkinsRestorer.',
+        'scheduler' => 'Run Azuriom\'s scheduler every minute so MineSkin jobs finish in the background and superseded files are cleaned after the 30-day safety window.',
+        'https_warning' => 'The configured site URL is not HTTPS. Direct and Hybrid uploads will be saved, but SkinSystem will refuse to submit an insecure site URL to SkinsRestorer.',
         'submitted_semantics' => '“Submitted” means Azuriom handed one or more commands to RCON or queued them for AzLink. It does not prove execution; retained clear operations can be submitted again safely.',
     ],
     'credits' => [
@@ -110,6 +110,10 @@ return [
         'azlink' => [
             'name' => 'AzLink',
             'role' => 'Azuriom-to-Minecraft command bridge',
+        ],
+        'mineskin' => [
+            'name' => 'MineSkin',
+            'role' => 'Signed skin and optional cape generation service',
         ],
         'original' => [
             'name' => 'Original SkinSystem',

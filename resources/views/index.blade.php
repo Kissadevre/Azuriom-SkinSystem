@@ -104,7 +104,7 @@
                     @else
                         <div class="skinsystem-library-grid">
                             @foreach($savedSkins as $savedSkin)
-                                @php($isActive = $skin && $skin->sha256 === $savedSkin->sha256 && $skin->variant === $savedSkin->variant)
+                                @php($isActive = $skin && $skin->sha256 === $savedSkin->sha256 && $skin->variant === $savedSkin->variant && $skin->cape_id === $savedSkin->cape_id)
                                 <article class="skinsystem-library-item {{ $isActive ? 'is-active' : '' }}">
                                     <div class="skinsystem-library-preview">
                                         <img src="{{ route('skinsystem.library.image', $savedSkin) }}"
@@ -121,11 +121,19 @@
                                         <h3 class="h6 text-truncate mb-1" title="{{ $savedSkin->name }}">{{ $savedSkin->name }}</h3>
                                         <div class="small text-body-secondary mb-3">
                                             {{ trans('skinsystem::messages.variants.'.$savedSkin->variant) }}
+                                            @if($savedSkin->cape_id)
+                                                <span class="d-block mt-1">
+                                                    <i class="bi bi-wind me-1" aria-hidden="true"></i>
+                                                    {{ $capeMap->get($savedSkin->cape_id)['alias'] ?? trans('skinsystem::messages.capes.saved') }}
+                                                </span>
+                                            @endif
                                         </div>
                                         <div class="d-flex gap-2">
                                             <form class="flex-grow-1" action="{{ route('skinsystem.library.activate', $savedSkin) }}" method="POST">
                                                 @csrf
-                                                <button class="btn btn-primary btn-sm w-100" type="submit" @disabled($isActive)>
+                                                <button class="btn btn-primary btn-sm w-100"
+                                                        type="submit"
+                                                        @disabled($isActive || ($savedSkin->cape_id !== null && !$capeSelectionEnabled))>
                                                     <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>
                                                     {{ trans($isActive ? 'skinsystem::messages.library.active' : 'skinsystem::messages.actions.activate') }}
                                                 </button>
@@ -165,7 +173,15 @@
                     <div class="card-body p-3 p-md-4">
                         <div class="skinsystem-viewer-shell"
                              data-skinsystem-viewer
-                             @if($skin) data-skin-url="{{ $skin->publicUrl() }}" @endif>
+                             @if($skin) data-skin-url="{{ $skin->publicUrl() }}" @endif
+                             @if($activeCape) data-cape-url="{{ $activeCape['url'] }}" @endif
+                             @if($mineSkinGeneration && in_array($mineSkinGeneration->status, [
+                                \Azuriom\Plugin\SkinSystem\Models\MineSkinGeneration::STATUS_PENDING,
+                                \Azuriom\Plugin\SkinSystem\Models\MineSkinGeneration::STATUS_PROCESSING,
+                             ], true))
+                                 data-generation-pending
+                                 data-status-url="{{ route('skinsystem.skins.status') }}"
+                             @endif>
                             <canvas class="skinsystem-viewer-canvas" aria-label="{{ trans('skinsystem::messages.viewer.canvas') }}">
                                 {{ trans('skinsystem::messages.viewer.unsupported') }}
                             </canvas>
@@ -310,6 +326,46 @@
                                 @enderror
                             </fieldset>
 
+                            @if($capeSelectionEnabled)
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold mb-1" for="capeInput">
+                                        {{ trans('skinsystem::messages.capes.label') }}
+                                    </label>
+                                    <p class="small text-body-secondary mb-3">
+                                        {{ trans('skinsystem::messages.capes.help') }}
+                                    </p>
+                                    <div class="skinsystem-cape-picker">
+                                        <span class="skinsystem-cape-preview" data-cape-preview aria-hidden="true">
+                                            <i class="bi bi-wind"></i>
+                                            <img alt="" data-cape-preview-image hidden>
+                                        </span>
+                                        <select class="form-select @error('cape_id') is-invalid @enderror"
+                                                id="capeInput"
+                                                name="cape_id"
+                                                @disabled($capeCatalogUnavailable)>
+                                            <option value="" data-cape-url="">{{ trans('skinsystem::messages.capes.none') }}</option>
+                                            @foreach($capes as $cape)
+                                                <option value="{{ $cape['uuid'] }}"
+                                                        data-cape-url="{{ $cape['url'] }}"
+                                                        @selected(old('cape_id', $skin?->cape_id ?? '') === $cape['uuid'])>
+                                                    {{ $cape['alias'] }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('cape_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    @if($capeCatalogUnavailable)
+                                        <div class="alert alert-warning py-2 px-3 small mt-2 mb-0">
+                                            {{ trans('skinsystem::messages.capes.catalog_unavailable') }}
+                                        </div>
+                                    @elseif(empty($capes))
+                                        <div class="form-text">{{ trans('skinsystem::messages.capes.empty') }}</div>
+                                    @endif
+                                </div>
+                            @endif
+
                             <div class="skinsystem-sync-note mb-4">
                                 <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
                                 <span>{{ trans('skinsystem::messages.upload.sync_note') }}</span>
@@ -434,6 +490,16 @@
                                             <div>
                                                 <span>{{ trans('skinsystem::messages.fields.resolved_variant') }}</span>
                                                 <strong>{{ trans('skinsystem::messages.variants.'.$skin->resolved_variant) }}</strong>
+                                            </div>
+                                        @endif
+                                        <div>
+                                            <span>{{ trans('skinsystem::messages.fields.delivery') }}</span>
+                                            <strong>{{ trans('skinsystem::messages.delivery.'.$skin->delivery_strategy) }}</strong>
+                                        </div>
+                                        @if($skin->cape_id)
+                                            <div>
+                                                <span>{{ trans('skinsystem::messages.fields.cape') }}</span>
+                                                <strong>{{ $activeCape['alias'] ?? trans('skinsystem::messages.capes.saved') }}</strong>
                                             </div>
                                         @endif
                                         @if($syncState?->dispatched_at)

@@ -28,6 +28,9 @@ The separate Azuriom Skin API and Skin3D Viewer plugins are **not** required. Sk
 - Alphanumeric library names limited to 16 characters, with an explicit replacement choice when the user's quota is full.
 - Instant activation of a saved skin without uploading its PNG again; every switch creates a new immutable revision and uses the normal SkinsRestorer synchronization path.
 - Integrated 3D preview with automatic, classic, and slim arm models.
+- Direct, MineSkin, and Hybrid delivery modes with an encrypted, administrator-owned global MineSkin API key.
+- Permission-controlled MineSkin cape selection that is completely absent when the integration is unavailable, plus live cape rendering in the 3D preview.
+- Persistent MineSkin queue jobs, browser-assisted status updates, scheduler recovery, bounded retry delays, and reuse of identical completed appearances.
 - Server-side classic/slim detection compatible with the bundled viewer heuristic.
 - A dedicated public-image rate limit, independent from Azuriom's shared API limiter.
 - Exact SkinsRestorer set and clear commands addressed to canonical Minecraft UUIDs.
@@ -62,14 +65,18 @@ A normal return means **submitted**, not confirmed as applied. AzLink does not p
 2. Connect that authoritative Minecraft server or proxy to Azuriom with AzLink or RCON.
 3. In **Admin > SkinSystem**, select that server and enable synchronization.
 4. Choose the maximum personal-library size and grant the `skinsystem.library` permission only to roles that may save and switch skins.
-5. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
-6. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, add the Azuriom HTTPS origin to `commands.restrictSkinUrls.list`.
-7. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
-8. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
-9. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
-10. Run Azuriom's scheduler normally. It invokes `skinsystem:cleanup` daily; the command can also be run manually and accepts `--days=30`.
+5. Choose Direct, MineSkin, or Hybrid delivery. MineSkin mode requires a verified global API key; Hybrid uses MineSkin only for appearances with a selected cape.
+6. To offer capes, configure a MineSkin key with the capes grant and assign `skinsystem.cape` only to eligible roles. The key is encrypted and is never sent to a player's browser.
+7. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin when Direct or Hybrid delivery can be used. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
+8. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, allow the Azuriom HTTPS origin for Direct delivery and MineSkin's result origin for MineSkin delivery.
+9. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
+10. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
+11. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
+12. Run Azuriom's scheduler every minute. It invokes `skinsystem:mineskin:process` for pending jobs and `skinsystem:cleanup` daily; both commands can also be run manually.
 
 Saving an HTTP or otherwise unreachable `APP_URL` is allowed so the site can be configured in stages. Uploads remain local and their synchronization state records the precise precondition failure until configuration is corrected.
+
+The MineSkin API is only contacted server-side. A queued response is persisted before the web request completes; the authenticated page polls a local status endpoint while it remains open, and Azuriom's scheduler recovers the same job when the browser closes. SkinSystem never silently falls back to a capeless direct upload after a cape generation failure.
 
 Changing the selected authoritative server affects newly created set operations. Previously recorded destinations remain attached to the account and are included in later clear generations; failed, submitted, and uncertain targets deliberately keep their original UUID/server pair so a retry cannot clear the wrong SkinsRestorer installation.
 

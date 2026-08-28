@@ -2,6 +2,7 @@
 
 namespace Azuriom\Plugin\SkinSystem\Commands;
 
+use Azuriom\Plugin\SkinSystem\Models\MineSkinGeneration;
 use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinRevision;
@@ -75,6 +76,10 @@ class CleanupSkinRevisions extends Command
                                 }
 
                                 $path = $expired->file;
+                                MineSkinGeneration::query()
+                                    ->where('user_id', $expired->user_id)
+                                    ->where('skin_revision', $expired->revision)
+                                    ->delete();
                                 $expired->delete();
 
                                 return $path;

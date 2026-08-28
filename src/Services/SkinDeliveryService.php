@@ -28,7 +28,7 @@ class SkinDeliveryService
 
         $generation = $this->generations->ensure($skin, $retryFailed);
 
-        return $this->finishOrReport($skin, $user, $generation);
+        return $this->finishOrReport($skin, $user, $generation, $retryFailed);
     }
 
     public function advanceAndApply(Skin $skin, User $user): SyncResult
@@ -46,8 +46,24 @@ class SkinDeliveryService
         Skin $skin,
         User $user,
         MineSkinGeneration $generation,
+        bool $forceDispatch = false,
     ): SyncResult {
         if ($generation->isComplete()) {
+            $state = SkinSyncState::query()
+                ->where('user_id', $skin->user_id)
+                ->where('action', SkinSyncState::ACTION_SET)
+                ->where('skin_revision', $skin->revision)
+                ->first();
+
+            if (! $forceDispatch
+                && $state?->dispatched_at !== null
+                && in_array($state->status, [
+                    SkinSyncState::STATUS_SUBMITTED,
+                    SkinSyncState::STATUS_UNCERTAIN,
+                ], true)) {
+                return new SyncResult($state->status, $state->error);
+            }
+
             return $this->synchronizer->apply($skin, $user, $generation->result_url);
         }
 

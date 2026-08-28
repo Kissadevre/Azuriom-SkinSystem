@@ -2,6 +2,7 @@
 
 namespace Azuriom\Plugin\SkinSystem\Tests\Feature;
 
+use Azuriom\Plugin\SkinSystem\Commands\ProcessMineSkinGenerations;
 use Azuriom\Plugin\SkinSystem\Models\MineSkinGeneration;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
@@ -10,16 +11,17 @@ use Azuriom\Plugin\SkinSystem\Services\MineSkinClient;
 use Azuriom\Plugin\SkinSystem\Services\MineSkinGenerationManager;
 use Azuriom\Plugin\SkinSystem\Services\SkinDeliveryService;
 use Azuriom\Plugin\SkinSystem\Services\SkinProcessor;
+use Azuriom\Plugin\SkinSystem\Services\SkinsRestorerCommandBuilder;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
 use Azuriom\Plugin\SkinSystem\Services\SkinSynchronizer;
 use Azuriom\Plugin\SkinSystem\Services\SkinSyncTargetRegistry;
 use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
-use Azuriom\Plugin\SkinSystem\Services\SkinsRestorerCommandBuilder;
 use Azuriom\Plugin\SkinSystem\Tests\Fakes\ConfigurableSkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\Fakes\RecordingServerBridge;
 use Azuriom\Plugin\SkinSystem\Tests\TestCase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\Console\Tester\CommandTester;
 
 class MineSkinDeliveryTest extends TestCase
 {
@@ -49,9 +51,13 @@ class MineSkinDeliveryTest extends TestCase
         $this->assertSame([], RecordingServerBridge::$calls);
 
         MineSkinGeneration::query()->update(['next_poll_at' => now()->subSecond()]);
-        $submitted = $delivery->advanceAndApply($skin, $user);
+        $this->app->instance(SkinSystemSettings::class, $settings);
+        $command = app(ProcessMineSkinGenerations::class);
+        $command->setLaravel($this->app);
+        $tester = new CommandTester($command);
 
-        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $submitted->status);
+        $this->assertSame(0, $tester->execute(['--limit' => 10]));
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, SkinSyncState::query()->sole()->status);
         $this->assertSame(MineSkinGeneration::STATUS_COMPLETED, MineSkinGeneration::query()->sole()->status);
         $this->assertSame(
             ['skin set "https://minesk.in/123456781234423482341234567890ab" '.self::PRIMARY_UUID.' classic'],
@@ -75,6 +81,39 @@ class MineSkinDeliveryTest extends TestCase
         $this->assertStringContainsString('/api/skinsystem/skins/', RecordingServerBridge::$calls[0]['commands'][0]);
         $this->assertSame(0, MineSkinGeneration::query()->count());
         Http::assertNothingSent();
+    }
+
+    public function test_hybrid_delivery_sends_the_selected_cape_to_mineskin(): void
+    {
+        $user = $this->createUser();
+        $server = $this->createServer('mc-rcon');
+        $settings = $this->settings($server->id, SkinSystemSettings::DELIVERY_HYBRID);
+        $capeId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        Http::fake([
+            MineSkinClient::BASE_URL.'/queue' => Http::response([
+                'success' => true,
+                'skin' => ['uuid' => 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
+            ]),
+        ]);
+
+        $skin = $this->manager($settings)
+            ->store($user, $this->uploadedSkin(), Skin::VARIANT_SLIM, $capeId)['skin'];
+        $result = $this->delivery($settings)->apply($skin, $user);
+
+        $this->assertSame(SkinSystemSettings::DELIVERY_MINESKIN, $skin->delivery_strategy);
+        $this->assertSame($capeId, $skin->cape_id);
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $result->status);
+        $this->assertSame(
+            ['skin set "https://minesk.in/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" '.self::PRIMARY_UUID.' slim'],
+            RecordingServerBridge::$calls[0]['commands'],
+        );
+        Http::assertSent(function ($request) use ($capeId) {
+            return $request->url() === MineSkinClient::BASE_URL.'/queue'
+                && str_contains($request->body(), 'name="cape"')
+                && str_contains($request->body(), $capeId)
+                && str_contains($request->body(), 'name="variant"')
+                && str_contains($request->body(), Skin::VARIANT_SLIM);
+        });
     }
 
     private function settings(int $serverId, string $mode): ConfigurableSkinSystemSettings

@@ -12,6 +12,9 @@ Route::middleware(['auth', 'can:skinsystem.skin'])->group(function () {
     Route::post('/skin/sync', [SkinController::class, 'sync'])
         ->middleware('throttle:3,1,skinsystem-sync')
         ->name('skins.sync');
+    Route::post('/skin/status', [SkinController::class, 'status'])
+        ->middleware('throttle:20,1,skinsystem-status')
+        ->name('skins.status');
     Route::delete('/skin', [SkinController::class, 'destroy'])->name('skins.destroy');
 
     Route::middleware('can:skinsystem.library')->prefix('/library')->name('library.')->group(function () {

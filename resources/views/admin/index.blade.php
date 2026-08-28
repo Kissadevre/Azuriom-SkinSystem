@@ -52,12 +52,12 @@
         </div>
     </div>
 
-    @unless($httpsReady)
+    @if(!$httpsReady && $deliveryMode !== \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DELIVERY_MINESKIN)
         <div class="alert alert-danger" role="alert">
             <i class="bi bi-shield-exclamation me-2" aria-hidden="true"></i>
             {{ trans('skinsystem::admin.requirements.https_warning') }}
         </div>
-    @endunless
+    @endif
 
     @if($servers->isEmpty())
         <div class="alert alert-warning" role="alert">

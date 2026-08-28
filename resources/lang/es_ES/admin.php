@@ -80,8 +80,8 @@ return [
         'skin_api' => 'Si Skin API continúa instalado, desactiva la opción heredada skinrestorer-integration de AzLink para evitar que su listener de ingreso sobrescriba SkinSystem.',
         'proxy' => 'En modo proxy con BungeeCord o Velocity, selecciona el AzLink/servidor del proxy donde SkinsRestorer administra sus datos; la consola de un backend no es autoritativa.',
         'cache_lock' => 'En instalaciones de Azuriom con varios nodos, usa una caché compartida como Redis o database para que los bloqueos por usuario funcionen en todos los nodos.',
-        'scheduler' => 'Ejecuta el programador de Azuriom para eliminar revisiones reemplazadas después de la ventana de seguridad de 30 días.',
-        'https_warning' => 'La URL configurada del sitio no usa HTTPS. Las skins se guardarán, pero SkinSystem se negará a enviar una URL insegura a SkinsRestorer.',
+        'scheduler' => 'Ejecuta el programador de Azuriom cada minuto para completar trabajos de MineSkin en segundo plano y eliminar archivos reemplazados después de la ventana de seguridad de 30 días.',
+        'https_warning' => 'La URL configurada del sitio no usa HTTPS. Las skins de los modos Directo e Híbrido se guardarán, pero SkinSystem no enviará una URL insegura a SkinsRestorer.',
         'submitted_semantics' => '“Enviado” significa que Azuriom entregó uno o varios comandos a RCON o los dejó en la cola de AzLink. No demuestra su ejecución; las limpiezas conservadas pueden reenviarse de forma segura.',
     ],
     'credits' => [
@@ -110,6 +110,10 @@ return [
         'azlink' => [
             'name' => 'AzLink',
             'role' => 'Puente de comandos entre Azuriom y Minecraft',
+        ],
+        'mineskin' => [
+            'name' => 'MineSkin',
+            'role' => 'Servicio de generación firmada de skins y capas opcionales',
         ],
         'original' => [
             'name' => 'SkinSystem original',
