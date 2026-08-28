@@ -13,6 +13,8 @@ class AdminSettingsValidationTest extends TestCase
         foreach (['letters', '10skins', '1.5', '-1', '0'] as $value) {
             $request = UpdateSettingsRequest::create('/', 'PUT', [
                 'sync_enabled' => '0',
+                'delivery_mode' => 'direct',
+                'remove_mineskin_api_key' => '0',
                 'library_limit' => $value,
                 'server_id' => null,
             ]);
@@ -27,6 +29,8 @@ class AdminSettingsValidationTest extends TestCase
         foreach (['1', '10', '100'] as $value) {
             $request = UpdateSettingsRequest::create('/', 'PUT', [
                 'sync_enabled' => '0',
+                'delivery_mode' => 'direct',
+                'remove_mineskin_api_key' => '0',
                 'library_limit' => $value,
                 'server_id' => null,
             ]);
@@ -37,5 +41,32 @@ class AdminSettingsValidationTest extends TestCase
                 "The value {$value} should be accepted.",
             );
         }
+    }
+
+    public function test_delivery_mode_is_restricted_to_supported_strategies(): void
+    {
+        foreach (['direct', 'mineskin', 'hybrid'] as $mode) {
+            $request = $this->settingsRequest(['delivery_mode' => $mode]);
+
+            $this->assertFalse(Validator::make($request->all(), $request->rules())->fails());
+        }
+
+        $request = $this->settingsRequest(['delivery_mode' => 'automatic']);
+
+        $this->assertTrue(Validator::make($request->all(), $request->rules())->fails());
+    }
+
+    private function settingsRequest(array $overrides = []): UpdateSettingsRequest
+    {
+        $request = UpdateSettingsRequest::create('/', 'PUT', array_merge([
+            'sync_enabled' => '0',
+            'delivery_mode' => 'direct',
+            'remove_mineskin_api_key' => '0',
+            'library_limit' => '10',
+            'server_id' => null,
+        ], $overrides));
+        $request->setContainer($this->app);
+
+        return $request;
     }
 }

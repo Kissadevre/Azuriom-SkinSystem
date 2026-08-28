@@ -3,7 +3,7 @@
 return [
     'title' => 'SkinSystem',
     'description' => 'Connect Azuriom skin uploads to one authoritative SkinsRestorer server.',
-    'updated' => 'SkinSystem synchronization settings were saved.',
+    'updated' => 'SkinSystem settings were saved.',
     'nav' => [
         'settings' => 'Settings',
         'information' => 'Information',
@@ -15,6 +15,34 @@ return [
         'total' => 'Active website skins',
         'submitted' => 'Latest operation submitted',
         'attention' => 'Need attention',
+    ],
+    'delivery' => [
+        'title' => 'Skin delivery mode',
+        'description' => 'Choose when SkinSystem sends its own immutable URL and when it generates a MineSkin result first.',
+        'modes' => [
+            'direct' => [
+                'title' => 'Direct',
+                'description' => 'Always send SkinSystem\'s HTTPS PNG URL to SkinsRestorer. Capes are not available.',
+            ],
+            'mineskin' => [
+                'title' => 'MineSkin',
+                'description' => 'Generate every active appearance through MineSkin before submitting it to SkinsRestorer.',
+            ],
+            'hybrid' => [
+                'title' => 'Hybrid',
+                'description' => 'Use direct delivery normally and MineSkin only when the player selects a cape.',
+            ],
+        ],
+        'api_key' => 'Global MineSkin API key',
+        'api_key_help' => 'The key is verified before saving, encrypted at rest, and never exposed to players or browser JavaScript.',
+        'key_configured' => 'Configured',
+        'key_missing' => 'Not configured',
+        'key_placeholder' => 'Paste a MineSkin API key',
+        'key_keep_placeholder' => 'Leave blank to keep the current key',
+        'remove_key' => 'Remove the stored API key',
+        'capes_available' => 'This key includes access to cape generation.',
+        'capes_unavailable' => 'This key does not currently include the capes grant.',
+        'cape_hidden_without_key' => 'Players will not see the cape selector until a compatible key is configured.',
     ],
     'settings' => [
         'title' => 'Synchronization settings',
@@ -103,10 +131,14 @@ return [
         'library_limit_integer' => 'The saved skins limit must contain whole numbers only.',
         'library_limit_min' => 'The saved skins limit must be at least 1.',
         'library_limit_max' => 'The saved skins limit may not exceed 100.',
+        'mineskin_key_required' => 'MineSkin mode requires a valid global MineSkin API key.',
+        'mineskin_invalid_key' => 'MineSkin rejected this API key. Verify it in your MineSkin account and try again.',
+        'mineskin_unavailable' => 'SkinSystem could not verify the key because MineSkin is unavailable. No MineSkin setting was changed.',
     ],
     'permissions' => [
         'skin' => 'Upload and manage their own Minecraft skin',
         'library' => 'Save and switch between skins in their personal library',
+        'cape' => 'Select MineSkin capes when the administrator enables them',
         'admin' => 'Manage SkinSystem settings',
     ],
 ];

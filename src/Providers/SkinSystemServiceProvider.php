@@ -4,6 +4,7 @@ namespace Azuriom\Plugin\SkinSystem\Providers;
 
 use Azuriom\Extensions\Plugin\BasePluginServiceProvider;
 use Azuriom\Models\Permission;
+use Azuriom\Models\Setting;
 use Azuriom\Plugin\SkinSystem\Commands\CleanupSkinRevisions;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
@@ -12,6 +13,14 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class SkinSystemServiceProvider extends BasePluginServiceProvider
 {
+    /**
+     * Register secrets before any setting value can be hydrated from storage.
+     */
+    public function register(): void
+    {
+        Setting::markAsEncrypted(SkinSystemSettings::MINESKIN_API_KEY_KEY);
+    }
+
     /**
      * Bootstrap the plugin services.
      */
@@ -37,6 +46,7 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
         Permission::registerPermissions([
             'skinsystem.skin' => 'skinsystem::admin.permissions.skin',
             'skinsystem.library' => 'skinsystem::admin.permissions.library',
+            'skinsystem.cape' => 'skinsystem::admin.permissions.cape',
             'skinsystem.admin' => 'skinsystem::admin.permissions.admin',
         ]);
     }

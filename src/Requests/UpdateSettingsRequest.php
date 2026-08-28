@@ -26,6 +26,9 @@ class UpdateSettingsRequest extends FormRequest
     {
         return [
             'sync_enabled' => ['required', 'boolean'],
+            'delivery_mode' => ['required', Rule::in(SkinSystemSettings::deliveryModes())],
+            'mineskin_api_key' => ['nullable', 'string', 'max:512'],
+            'remove_mineskin_api_key' => ['required', 'boolean'],
             'library_limit' => [
                 'required',
                 'integer',
@@ -70,6 +73,18 @@ class UpdateSettingsRequest extends FormRequest
                 && $this->filled('server_id')
                 && app(SkinSystemSettings::class)->findServer((int) $this->input('server_id')) === null) {
                 $validator->errors()->add('server_id', trans('skinsystem::admin.validation.server_unavailable'));
+            }
+
+            $willHaveMineSkinKey = $this->filled('mineskin_api_key')
+                || (! $this->boolean('remove_mineskin_api_key')
+                    && app(SkinSystemSettings::class)->hasMineSkinApiKey());
+
+            if ($this->input('delivery_mode') === SkinSystemSettings::DELIVERY_MINESKIN
+                && ! $willHaveMineSkinKey) {
+                $validator->errors()->add(
+                    'mineskin_api_key',
+                    trans('skinsystem::admin.validation.mineskin_key_required'),
+                );
             }
         });
     }
