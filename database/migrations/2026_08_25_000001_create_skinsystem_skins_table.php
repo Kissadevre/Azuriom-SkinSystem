@@ -9,6 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         if (Schema::hasTable('skinsystem_skins')) {
+            if (! Schema::hasColumn('skinsystem_skins', 'cape_id')) {
+                Schema::table('skinsystem_skins', function (Blueprint $table) {
+                    $table->string('cape_id', 64)->nullable()->after('resolved_variant');
+                });
+            }
+
+            if (! Schema::hasColumn('skinsystem_skins', 'delivery_strategy')) {
+                Schema::table('skinsystem_skins', function (Blueprint $table) {
+                    $table->string('delivery_strategy', 16)->default('direct')->after('cape_id');
+                });
+            }
+
             return;
         }
 

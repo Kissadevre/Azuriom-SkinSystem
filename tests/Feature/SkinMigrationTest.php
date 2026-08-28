@@ -3,6 +3,7 @@
 namespace Azuriom\Plugin\SkinSystem\Tests\Feature;
 
 use Azuriom\Plugin\SkinSystem\Tests\TestCase;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -56,6 +57,68 @@ class SkinMigrationTest extends TestCase
         foreach (array_keys(self::TABLE_MIGRATIONS) as $table) {
             $this->assertTrue(Schema::hasTable($table));
         }
+    }
+
+    public function test_split_migrations_upgrade_the_pre_mineskin_schema_without_losing_saved_skins(): void
+    {
+        $migrations = $this->tableMigrations();
+
+        $migrations[self::TABLE_MIGRATIONS['skinsystem_saved_skins']]->down();
+        $migrations[self::TABLE_MIGRATIONS['skinsystem_skin_revisions']]->down();
+        $migrations[self::TABLE_MIGRATIONS['skinsystem_skins']]->down();
+
+        Schema::create('skinsystem_skins', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id')->unique();
+            $table->string('file');
+            $table->char('sha256', 64)->index();
+            $table->string('variant', 16)->default('auto');
+            $table->string('resolved_variant', 16)->default('classic');
+            $table->unsignedInteger('revision')->default(1);
+            $table->timestamps();
+        });
+        Schema::create('skinsystem_skin_revisions', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id');
+            $table->unsignedInteger('revision');
+            $table->string('file');
+            $table->char('sha256', 64);
+            $table->string('resolved_variant', 16);
+            $table->timestamps();
+        });
+        Schema::create('skinsystem_saved_skins', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('user_id');
+            $table->string('name', 16);
+            $table->string('file');
+            $table->char('sha256', 64)->index();
+            $table->string('variant', 16)->default('auto');
+            $table->string('resolved_variant', 16)->default('classic');
+            $table->timestamps();
+            $table->unique(['user_id', 'sha256', 'variant'], 'skinsystem_saved_skins_unique');
+        });
+
+        $sha256 = str_repeat('a', 64);
+        DB::table('skinsystem_saved_skins')->insert([
+            'user_id' => 42,
+            'name' => 'Legacy',
+            'file' => 'skinsystem/library/legacy.png',
+            'sha256' => $sha256,
+            'variant' => 'classic',
+            'resolved_variant' => 'classic',
+        ]);
+
+        $migrations[self::TABLE_MIGRATIONS['skinsystem_skins']]->up();
+        $migrations[self::TABLE_MIGRATIONS['skinsystem_skin_revisions']]->up();
+        $migrations[self::TABLE_MIGRATIONS['skinsystem_saved_skins']]->up();
+
+        $this->assertTrue(Schema::hasColumns('skinsystem_skins', ['cape_id', 'delivery_strategy']));
+        $this->assertTrue(Schema::hasColumns('skinsystem_skin_revisions', ['cape_id', 'delivery_strategy']));
+        $this->assertTrue(Schema::hasColumns('skinsystem_saved_skins', ['cape_id', 'appearance_hash']));
+        $this->assertSame(
+            hash('sha256', $sha256.'|classic|none'),
+            DB::table('skinsystem_saved_skins')->value('appearance_hash'),
+        );
     }
 
     public function test_split_migrations_compile_with_the_mariadb_schema_grammar(): void
