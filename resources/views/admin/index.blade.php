@@ -344,6 +344,75 @@
             </div>
         </div>
 
+        @php
+            $userMenuIconValue = old('user_menu_icon', $userMenuIcon);
+            $userMenuIconPreview = is_string($userMenuIconValue)
+                && preg_match('/^bi-[a-z0-9]+(?:-[a-z0-9]+)*$/D', $userMenuIconValue) === 1
+                    ? $userMenuIconValue
+                    : \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DEFAULT_USER_MENU_ICON;
+        @endphp
+        <section class="card skinsystem-admin-card mb-4">
+            <div class="card-header skinsystem-admin-card-header">
+                <span class="skinsystem-admin-icon text-info bg-info bg-opacity-10">
+                    <i class="bi bi-person-lines-fill" aria-hidden="true"></i>
+                </span>
+                <div>
+                    <h2 class="h5 mb-1">{{ trans('skinsystem::admin.settings.user_menu_title') }}</h2>
+                    <p class="text-muted small mb-0">{{ trans('skinsystem::admin.settings.user_menu_description') }}</p>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4 align-items-stretch">
+                    <div class="col-lg-7">
+                        <div class="skinsystem-setting-row h-100">
+                            <label for="userMenuEnabled" class="mb-0">
+                                <span class="d-block fw-semibold">{{ trans('skinsystem::admin.settings.user_menu_enabled') }}</span>
+                                <small class="text-muted">{{ trans('skinsystem::admin.settings.user_menu_enabled_help') }}</small>
+                            </label>
+                            <input type="hidden" name="user_menu_enabled" value="0">
+                            <div class="form-check form-switch fs-4 mb-0">
+                                <input class="form-check-input @error('user_menu_enabled') is-invalid @enderror"
+                                       type="checkbox"
+                                       name="user_menu_enabled"
+                                       value="1"
+                                       id="userMenuEnabled"
+                                       @checked(old('user_menu_enabled', $showInUserMenu))>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <label class="form-label fw-semibold" for="userMenuIcon">
+                            {{ trans('skinsystem::admin.settings.user_menu_icon') }}
+                        </label>
+                        <div class="input-group @error('user_menu_icon') has-validation @enderror">
+                            <span class="input-group-text skinsystem-icon-preview" aria-hidden="true">
+                                <i class="bi {{ $userMenuIconPreview }}" data-user-menu-icon-preview></i>
+                            </span>
+                            <input class="form-control font-monospace @error('user_menu_icon') is-invalid @enderror"
+                                   type="text"
+                                   id="userMenuIcon"
+                                   name="user_menu_icon"
+                                   value="{{ $userMenuIconValue }}"
+                                   maxlength="64"
+                                   pattern="bi-[a-z0-9]+(?:-[a-z0-9]+)*"
+                                   placeholder="{{ \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DEFAULT_USER_MENU_ICON }}"
+                                   autocomplete="off"
+                                   data-user-menu-icon
+                                   data-default-icon="{{ \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DEFAULT_USER_MENU_ICON }}"
+                                   aria-describedby="userMenuIconHelp"
+                                   required>
+                            @error('user_menu_icon')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-text" id="userMenuIconHelp">
+                            {!! trans('skinsystem::admin.settings.user_menu_icon_help') !!}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="d-flex justify-content-end mb-4">
             <button type="submit" class="btn btn-primary btn-lg px-4">
                 <i class="bi bi-check-lg me-1" aria-hidden="true"></i>

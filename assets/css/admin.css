@@ -34,6 +34,13 @@
     background: var(--bs-tertiary-bg);
 }
 
+.skinsystem-icon-preview {
+    width: 3rem;
+    justify-content: center;
+    color: var(--bs-primary);
+    font-size: 1.1rem;
+}
+
 .skinsystem-delivery-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

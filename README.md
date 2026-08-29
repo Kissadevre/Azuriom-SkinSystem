@@ -28,6 +28,7 @@ The separate Azuriom Skin API and Skin3D Viewer plugins are **not** required. Sk
 - Alphanumeric library names limited to 16 characters, with an explicit replacement choice when the user's quota is full.
 - Instant activation of a saved skin without uploading its PNG again; every switch creates a new immutable revision and uses the normal SkinsRestorer synchronization path.
 - Integrated 3D preview with automatic, classic, and slim arm models.
+- Configurable My Skin shortcut in Azuriom's authenticated user menu with a validated Bootstrap Icon.
 - Direct, MineSkin, and Hybrid delivery modes with an encrypted, administrator-owned global MineSkin API key.
 - Permission-controlled MineSkin cape selection that is completely absent when the integration is unavailable, plus live cape rendering in the 3D preview.
 - Persistent MineSkin queue jobs, browser-assisted status updates, scheduler recovery, bounded retry delays, and reuse of identical completed appearances.

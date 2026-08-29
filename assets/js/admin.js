@@ -31,6 +31,26 @@
             validateMinimum();
         });
 
+        document.querySelectorAll('[data-user-menu-icon]').forEach(function (input) {
+            const preview = document.querySelector('[data-user-menu-icon-preview]');
+            const iconPattern = /^bi-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+            if (!preview) {
+                return;
+            }
+
+            function updatePreview() {
+                const icon = iconPattern.test(input.value)
+                    ? input.value
+                    : input.dataset.defaultIcon;
+
+                preview.className = 'bi ' + icon;
+            }
+
+            input.addEventListener('input', updatePreview);
+            updatePreview();
+        });
+
         document.querySelectorAll('[data-mineskin-integration]').forEach(function (integration) {
             const keyConfigured = integration.dataset.keyConfigured === 'true';
             const editorStartsOpen = integration.dataset.editorOpen === 'true';

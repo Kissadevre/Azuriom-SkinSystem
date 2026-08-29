@@ -16,6 +16,10 @@ class SkinSystemSettings
 
     public const LIBRARY_LIMIT_KEY = 'skinsystem.library_limit';
 
+    public const USER_MENU_ENABLED_KEY = 'skinsystem.user_menu_enabled';
+
+    public const USER_MENU_ICON_KEY = 'skinsystem.user_menu_icon';
+
     public const DELIVERY_MODE_KEY = 'skinsystem.delivery_mode';
 
     public const MINESKIN_API_KEY_KEY = 'skinsystem.mineskin_api_key';
@@ -31,6 +35,8 @@ class SkinSystemSettings
     public const DELIVERY_HYBRID = 'hybrid';
 
     public const DEFAULT_LIBRARY_LIMIT = 10;
+
+    public const DEFAULT_USER_MENU_ICON = 'bi-person-bounding-box';
 
     public const MAX_LIBRARY_LIMIT = 100;
 
@@ -67,6 +73,22 @@ class SkinSystemSettings
         ]);
 
         return $value === false ? self::DEFAULT_LIBRARY_LIMIT : $value;
+    }
+
+    public function showInUserMenu(): bool
+    {
+        return filter_var(setting(self::USER_MENU_ENABLED_KEY, true), FILTER_VALIDATE_BOOL);
+    }
+
+    public function userMenuIcon(): string
+    {
+        $icon = setting(self::USER_MENU_ICON_KEY, self::DEFAULT_USER_MENU_ICON);
+
+        if (! is_string($icon) || preg_match('/^bi-[a-z0-9]+(?:-[a-z0-9]+)*$/D', $icon) !== 1) {
+            return self::DEFAULT_USER_MENU_ICON;
+        }
+
+        return $icon;
     }
 
     /**
