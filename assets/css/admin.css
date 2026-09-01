@@ -47,6 +47,16 @@
     gap: .85rem;
 }
 
+.skinsystem-target-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem;
+}
+
+.skinsystem-target-option {
+    min-height: 7.25rem;
+}
+
 .skinsystem-section-heading {
     display: flex;
     align-items: baseline;
@@ -418,6 +428,8 @@
 
 @media (max-width: 767.98px) {
     .skinsystem-credits-grid { grid-template-columns: 1fr; }
+
+    .skinsystem-target-grid { grid-template-columns: 1fr; }
 
     .skinsystem-capability-grid { grid-template-columns: 1fr; }
 

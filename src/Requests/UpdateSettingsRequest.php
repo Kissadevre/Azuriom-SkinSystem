@@ -27,6 +27,7 @@ class UpdateSettingsRequest extends FormRequest
         return [
             'sync_enabled' => ['required', 'boolean'],
             'delivery_mode' => ['required', Rule::in(SkinSystemSettings::deliveryModes())],
+            'application_target' => ['required', Rule::in(SkinSystemSettings::applicationTargets())],
             'mineskin_api_key' => ['nullable', 'string', 'max:512'],
             'remove_mineskin_api_key' => ['required', 'boolean'],
             'user_menu_enabled' => ['required', 'boolean'],
@@ -62,6 +63,7 @@ class UpdateSettingsRequest extends FormRequest
             'library_limit.min' => trans('skinsystem::admin.validation.library_limit_min'),
             'library_limit.max' => trans('skinsystem::admin.validation.library_limit_max'),
             'user_menu_icon.regex' => trans('skinsystem::admin.validation.user_menu_icon_format'),
+            'application_target.in' => trans('skinsystem::admin.validation.application_target_invalid'),
         ];
     }
 

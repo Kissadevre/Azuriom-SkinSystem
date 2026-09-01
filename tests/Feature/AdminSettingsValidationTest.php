@@ -18,6 +18,7 @@ class AdminSettingsValidationTest extends TestCase
             $request = UpdateSettingsRequest::create('/', 'PUT', [
                 'sync_enabled' => '0',
                 'delivery_mode' => 'direct',
+                'application_target' => SkinSystemSettings::TARGET_UUID,
                 'remove_mineskin_api_key' => '0',
                 'user_menu_enabled' => '1',
                 'user_menu_icon' => SkinSystemSettings::DEFAULT_USER_MENU_ICON,
@@ -36,6 +37,7 @@ class AdminSettingsValidationTest extends TestCase
             $request = UpdateSettingsRequest::create('/', 'PUT', [
                 'sync_enabled' => '0',
                 'delivery_mode' => 'direct',
+                'application_target' => SkinSystemSettings::TARGET_UUID,
                 'remove_mineskin_api_key' => '0',
                 'user_menu_enabled' => '1',
                 'user_menu_icon' => SkinSystemSettings::DEFAULT_USER_MENU_ICON,
@@ -62,6 +64,39 @@ class AdminSettingsValidationTest extends TestCase
         $request = $this->settingsRequest(['delivery_mode' => 'automatic']);
 
         $this->assertTrue(Validator::make($request->all(), $request->rules())->fails());
+    }
+
+    public function test_application_target_is_restricted_to_uuid_or_username(): void
+    {
+        foreach (SkinSystemSettings::applicationTargets() as $target) {
+            $request = $this->settingsRequest(['application_target' => $target]);
+
+            $this->assertFalse(Validator::make($request->all(), $request->rules())->fails());
+        }
+
+        $request = $this->settingsRequest(['application_target' => 'hybrid']);
+
+        $this->assertTrue(Validator::make($request->all(), $request->rules())->fails());
+        $this->assertSame(
+            SkinSystemSettings::TARGET_UUID,
+            app(SkinSystemSettings::class)->applicationTarget(),
+        );
+
+        Setting::updateSettings([
+            SkinSystemSettings::APPLICATION_TARGET_KEY => SkinSystemSettings::TARGET_USERNAME,
+        ]);
+        $this->assertSame(
+            SkinSystemSettings::TARGET_USERNAME,
+            app(SkinSystemSettings::class)->applicationTarget(),
+        );
+
+        Setting::updateSettings([
+            SkinSystemSettings::APPLICATION_TARGET_KEY => 'hybrid',
+        ]);
+        $this->assertSame(
+            SkinSystemSettings::TARGET_UUID,
+            app(SkinSystemSettings::class)->applicationTarget(),
+        );
     }
 
     public function test_global_mineskin_key_is_encrypted_at_rest(): void
@@ -140,6 +175,7 @@ class AdminSettingsValidationTest extends TestCase
         $request = UpdateSettingsRequest::create('/', 'PUT', array_merge([
             'sync_enabled' => '0',
             'delivery_mode' => 'direct',
+            'application_target' => SkinSystemSettings::TARGET_UUID,
             'remove_mineskin_api_key' => '0',
             'user_menu_enabled' => '1',
             'user_menu_icon' => SkinSystemSettings::DEFAULT_USER_MENU_ICON,

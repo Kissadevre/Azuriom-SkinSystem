@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property int $user_id
  * @property string $target_uuid
+ * @property string $target_type
+ * @property string $target_value
  * @property int $target_server_id
  * @property string $status
  * @property int|null $clear_revision
@@ -37,6 +39,8 @@ class SkinSyncTarget extends Model
     protected $fillable = [
         'user_id',
         'target_uuid',
+        'target_type',
+        'target_value',
         'target_server_id',
         'status',
         'clear_revision',

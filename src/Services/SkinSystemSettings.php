@@ -22,6 +22,8 @@ class SkinSystemSettings
 
     public const DELIVERY_MODE_KEY = 'skinsystem.delivery_mode';
 
+    public const APPLICATION_TARGET_KEY = 'skinsystem.application_target';
+
     public const MINESKIN_API_KEY_KEY = 'skinsystem.mineskin_api_key';
 
     public const MINESKIN_VERIFIED_AT_KEY = 'skinsystem.mineskin_verified_at';
@@ -33,6 +35,10 @@ class SkinSystemSettings
     public const DELIVERY_MINESKIN = 'mineskin';
 
     public const DELIVERY_HYBRID = 'hybrid';
+
+    public const TARGET_UUID = 'uuid';
+
+    public const TARGET_USERNAME = 'username';
 
     public const DEFAULT_LIBRARY_LIMIT = 10;
 
@@ -114,6 +120,23 @@ class SkinSystemSettings
             self::DELIVERY_MINESKIN,
             self::DELIVERY_HYBRID,
         ];
+    }
+
+    public function applicationTarget(): string
+    {
+        $target = setting(self::APPLICATION_TARGET_KEY, self::TARGET_UUID);
+
+        return is_string($target) && in_array($target, self::applicationTargets(), true)
+            ? $target
+            : self::TARGET_UUID;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function applicationTargets(): array
+    {
+        return [self::TARGET_UUID, self::TARGET_USERNAME];
     }
 
     public function mineSkinApiKey(): ?string

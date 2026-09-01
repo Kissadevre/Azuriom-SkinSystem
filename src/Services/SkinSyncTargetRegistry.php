@@ -7,7 +7,7 @@ use Azuriom\Plugin\SkinSystem\Models\SkinSyncTarget;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Conservatively records every UUID/server pair that may hold a custom skin.
+ * Conservatively records every command target/server pair that may hold a custom skin.
  *
  * Callers must hold the user's database row lock before invoking mutating
  * methods. This keeps the lock order consistent across lifecycle and bridge
@@ -23,12 +23,17 @@ class SkinSyncTargetRegistry
         int $userId,
         ?string $targetUuid,
         ?int $targetServerId,
+        ?string $targetType = null,
+        ?string $targetValue = null,
     ): ?SkinSyncTarget {
-        if (! $this->validTarget($targetUuid, $targetServerId)) {
+        $targetType ??= SkinSystemSettings::TARGET_UUID;
+        $targetValue ??= $targetUuid;
+
+        if (! $this->validTarget($targetUuid, $targetServerId, $targetType, $targetValue)) {
             return null;
         }
 
-        $target = $this->targetQuery($userId, $targetUuid, $targetServerId)
+        $target = $this->targetQuery($userId, $targetServerId, $targetType, $targetValue)
             ->lockForUpdate()
             ->first();
 
@@ -36,9 +41,28 @@ class SkinSyncTargetRegistry
             return $target;
         }
 
+        $legacyTarget = SkinSyncTarget::query()
+            ->where('user_id', $userId)
+            ->where('target_uuid', $targetUuid)
+            ->where('target_server_id', $targetServerId)
+            ->whereNull('target_value')
+            ->lockForUpdate()
+            ->first();
+
+        if ($legacyTarget !== null) {
+            $legacyTarget->forceFill([
+                'target_type' => $targetType,
+                'target_value' => $targetValue,
+            ])->save();
+
+            return $legacyTarget;
+        }
+
         return SkinSyncTarget::query()->create([
             'user_id' => $userId,
             'target_uuid' => $targetUuid,
+            'target_type' => $targetType,
+            'target_value' => $targetValue,
             'target_server_id' => $targetServerId,
             'status' => SkinSyncTarget::STATUS_POSSIBLE_ACTIVE,
         ]);
@@ -51,8 +75,16 @@ class SkinSyncTargetRegistry
         int $userId,
         ?string $targetUuid,
         ?int $targetServerId,
+        ?string $targetType = null,
+        ?string $targetValue = null,
     ): ?SkinSyncTarget {
-        $target = $this->rememberPotential($userId, $targetUuid, $targetServerId);
+        $target = $this->rememberPotential(
+            $userId,
+            $targetUuid,
+            $targetServerId,
+            $targetType,
+            $targetValue,
+        );
 
         if ($target === null) {
             return null;
@@ -87,8 +119,16 @@ class SkinSyncTargetRegistry
         int $revision,
         ?string $fallbackUuid = null,
         ?int $fallbackServerId = null,
+        ?string $fallbackType = null,
+        ?string $fallbackValue = null,
     ): Collection {
-        $this->rememberPotential($userId, $fallbackUuid, $fallbackServerId);
+        $this->rememberPotential(
+            $userId,
+            $fallbackUuid,
+            $fallbackServerId,
+            $fallbackType,
+            $fallbackValue,
+        );
 
         $targets = $this->lockedTargets($userId);
 
@@ -115,8 +155,16 @@ class SkinSyncTargetRegistry
         int $revision,
         ?string $fallbackUuid = null,
         ?int $fallbackServerId = null,
+        ?string $fallbackType = null,
+        ?string $fallbackValue = null,
     ): Collection {
-        $this->rememberPotential($userId, $fallbackUuid, $fallbackServerId);
+        $this->rememberPotential(
+            $userId,
+            $fallbackUuid,
+            $fallbackServerId,
+            $fallbackType,
+            $fallbackValue,
+        );
 
         $targets = $this->lockedTargets($userId);
 
@@ -149,20 +197,40 @@ class SkinSyncTargetRegistry
             ->delete();
     }
 
-    private function validTarget(?string $targetUuid, ?int $targetServerId): bool
-    {
+    private function validTarget(
+        ?string $targetUuid,
+        ?int $targetServerId,
+        string $targetType,
+        ?string $targetValue,
+    ): bool {
         return $targetUuid !== null
             && $this->commands->canonicalUuid($targetUuid) === $targetUuid
+            && $targetValue !== null
+            && $this->validCommandTarget($targetValue, $targetType)
             && $targetServerId !== null
             && $targetServerId >= 1
             && $targetServerId <= SkinSystemSettings::MAX_DATABASE_ID;
     }
 
-    private function targetQuery(int $userId, string $targetUuid, int $targetServerId)
+    private function validCommandTarget(string $targetValue, string $targetType): bool
     {
+        try {
+            return $this->commands->validatedTarget($targetValue, $targetType) === $targetValue;
+        } catch (\Azuriom\Plugin\SkinSystem\Exceptions\SyncPreconditionException) {
+            return false;
+        }
+    }
+
+    private function targetQuery(
+        int $userId,
+        int $targetServerId,
+        string $targetType,
+        string $targetValue,
+    ) {
         return SkinSyncTarget::query()
             ->where('user_id', $userId)
-            ->where('target_uuid', $targetUuid)
+            ->where('target_type', $targetType)
+            ->where('target_value', $targetValue)
             ->where('target_server_id', $targetServerId);
     }
 

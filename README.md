@@ -34,10 +34,10 @@ The separate Azuriom Skin API and Skin3D Viewer plugins are **not** required. Sk
 - Persistent MineSkin queue jobs, browser-assisted status updates, scheduler recovery, bounded retry delays, and reuse of identical completed appearances.
 - Server-side classic/slim detection compatible with the bundled viewer heuristic.
 - A dedicated public-image rate limit, independent from Azuriom's shared API limiter.
-- Exact SkinsRestorer set and clear commands addressed to canonical Minecraft UUIDs.
+- Configurable SkinsRestorer set and clear commands addressed to either canonical Minecraft UUIDs or validated usernames.
 - Automatic dispatch through an authoritative AzLink or RCON connection.
 - Durable pending, submitted, failed, uncertain, and not-configured synchronization states.
-- A conservative destination ledger that retains every UUID/server pair which may have observed a SkinSystem set command.
+- A conservative destination ledger that retains every identifier/server pair which may have observed a SkinSystem set command.
 - Revision-bound clear generations that fan out to every recorded destination and reject stale result updates after a newer upload.
 - Per-user atomic locks around upload, deletion, retry, and bridge dispatch.
 - Exact ownership of SkinSystem-created AzLink set and per-target clear rows, so a newer operation can replace its own queued command without deleting commands from administrators or other plugins.
@@ -50,11 +50,11 @@ The browser viewer is the official `skinview3d` 3.4.2 browser bundle, stored loc
 SkinSystem emits the current SkinsRestorer console grammar:
 
 ```text
-skin set "<immutable-https-png-url>" <canonical-uuid> <classic|slim>
-skin clear <canonical-uuid>
+skin set "<immutable-https-png-url>" <canonical-uuid|username> <classic|slim>
+skin clear <canonical-uuid|username>
 ```
 
-The selected UUID and server are snapshotted into each set operation. Every such destination remains in a conservative ledger because a queued AzLink command may already have been fetched when its database row is cancelled. Deleting a skin creates one revision-bound clear intent for every recorded destination, so moving from target A to target B cannot leave A behind. Retrying a clear operation reuses those immutable UUID/server pairs instead of silently moving to a newly selected account or server.
+The selected identifier type, exact identifier value, canonical account UUID, and server are snapshotted into each set operation. Every such destination remains in a conservative ledger because a queued AzLink command may already have been fetched when its database row is cancelled. Deleting a skin creates one revision-bound clear intent for every recorded destination, so moving from target A to target B cannot leave A behind. Retrying a clear operation reuses those immutable snapshots instead of silently moving to a newly selected account, username, or server.
 
 For AzLink, SkinSystem persists the command directly in Azuriom's normal `server_commands` queue and records that row's exact ID. SET ownership belongs to the current global operation; each CLEAR row belongs to exactly one destination and clear revision. It then mirrors AzLink's optional immediate notification behavior. For RCON, it records the possible destination before crossing the external dispatch boundary and uses the standard server bridge directly.
 
@@ -65,21 +65,22 @@ A normal return means **submitted**, not confirmed as applied. AzLink does not p
 1. Install SkinsRestorer at the layer that owns player skin data.
 2. Connect that authoritative Minecraft server or proxy to Azuriom with AzLink or RCON.
 3. In **Admin > SkinSystem**, select that server and enable synchronization.
-4. Choose the maximum personal-library size and grant the `skinsystem.library` permission only to roles that may save and switch skins.
-5. Choose Direct, MineSkin, or Hybrid delivery. MineSkin mode requires a verified global API key; Hybrid uses MineSkin only for appearances with a selected cape.
-6. To offer capes, configure a MineSkin key with the capes grant and assign `skinsystem.cape` only to eligible roles. The key is encrypted and is never sent to a player's browser.
-7. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin when Direct or Hybrid delivery can be used. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
-8. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, allow the Azuriom HTTPS origin for Direct delivery and MineSkin's result origin for MineSkin delivery.
-9. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
-10. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
-11. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
-12. Run Azuriom's scheduler every minute. It invokes `skinsystem:mineskin:process` for pending jobs and `skinsystem:cleanup` daily; both commands can also be run manually.
+4. Choose whether SkinsRestorer commands identify players by UUID (default) or by their validated Minecraft username.
+5. Choose the maximum personal-library size and grant the `skinsystem.library` permission only to roles that may save and switch skins.
+6. Choose Direct, MineSkin, or Hybrid delivery. MineSkin mode requires a verified global API key; Hybrid uses MineSkin only for appearances with a selected cape.
+7. To offer capes, configure a MineSkin key with the capes grant and assign `skinsystem.cape` only to eligible roles. The key is encrypted and is never sent to a player's browser.
+8. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin when Direct or Hybrid delivery can be used. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
+9. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, allow the Azuriom HTTPS origin for Direct delivery and MineSkin's result origin for MineSkin delivery.
+10. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
+11. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
+12. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
+13. Run Azuriom's scheduler every minute. It invokes `skinsystem:mineskin:process` for pending jobs and `skinsystem:cleanup` daily; both commands can also be run manually.
 
 Saving an HTTP or otherwise unreachable `APP_URL` is allowed so the site can be configured in stages. Uploads remain local and their synchronization state records the precise precondition failure until configuration is corrected.
 
 The MineSkin API is only contacted server-side. A queued response is persisted before the web request completes; the authenticated page polls a local status endpoint while it remains open, and Azuriom's scheduler recovers the same job when the browser closes. SkinSystem never silently falls back to a capeless direct upload after a cape generation failure.
 
-Changing the selected authoritative server affects newly created set operations. Previously recorded destinations remain attached to the account and are included in later clear generations; failed, submitted, and uncertain targets deliberately keep their original UUID/server pair so a retry cannot clear the wrong SkinsRestorer installation.
+Changing the selected authoritative server or player identifier method affects newly created set operations. Previously recorded destinations remain attached to the account and are included in later clear generations; failed, submitted, and uncertain targets deliberately keep their original identifier/server snapshot so a retry cannot clear the wrong SkinsRestorer installation or a renamed account.
 
 ## Storage and cleanup
 

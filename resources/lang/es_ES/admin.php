@@ -72,6 +72,18 @@ return [
         'select_server' => 'Selecciona un servidor ejecutable',
         'server_help' => 'Solo aparecen servidores de Minecraft con AzLink o RCON capaces de ejecutar comandos de consola.',
         'no_servers' => 'No hay un servidor de Minecraft ejecutable y compatible. Primero configura AzLink o RCON en Azuriom.',
+        'application_target' => 'Identificador del jugador',
+        'application_target_help' => 'Elige el valor que se enviará a SkinsRestorer como objetivo del comando.',
+        'application_targets' => [
+            'uuid' => [
+                'title' => 'Usar UUID',
+                'description' => 'Envía el UUID inmutable de Minecraft guardado en la cuenta de Azuriom. Recomendado para conservar una identidad estable.',
+            ],
+            'username' => [
+                'title' => 'Usar username',
+                'description' => 'Envía el nombre de Minecraft guardado en la cuenta de Azuriom. Úsalo cuando SkinsRestorer resuelva jugadores por nombre.',
+            ],
+        ],
         'library_limit' => 'Skins guardadas por usuario',
         'library_limit_help' => 'Cantidad máxima de skins reutilizables que un usuario autorizado puede conservar en su biblioteca personal (1–100).',
         'library_title' => 'Biblioteca y distribución',
@@ -160,6 +172,7 @@ return [
         'library_limit_min' => 'El límite de skins guardadas debe ser como mínimo 1.',
         'library_limit_max' => 'El límite de skins guardadas no puede superar 100.',
         'user_menu_icon_format' => 'Escribe una clase válida de Bootstrap Icons, como bi-person-bounding-box.',
+        'application_target_invalid' => 'Selecciona UUID o username como identificador del jugador.',
         'mineskin_key_required' => 'El modo MineSkin requiere una clave API global de MineSkin válida.',
         'mineskin_invalid_key' => 'MineSkin rechazó esta clave API. Verifícala en tu cuenta de MineSkin e inténtalo de nuevo.',
         'mineskin_unavailable' => 'SkinSystem no pudo validar la clave porque MineSkin no está disponible. No se modificó ningún ajuste de MineSkin.',

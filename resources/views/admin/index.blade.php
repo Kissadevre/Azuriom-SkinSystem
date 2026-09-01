@@ -288,6 +288,41 @@
                             </div>
                             <div class="form-text">{{ trans('skinsystem::admin.settings.server_help') }}</div>
                         </div>
+
+                        <div class="mt-4">
+                            <div class="skinsystem-section-heading">
+                                <span class="skinsystem-section-label">{{ trans('skinsystem::admin.settings.application_target') }}</span>
+                                <span class="text-muted small">{{ trans('skinsystem::admin.settings.application_target_help') }}</span>
+                            </div>
+                            <div class="skinsystem-target-grid">
+                                @php
+                                    $applicationTargetIcons = [
+                                        'uuid' => 'bi-fingerprint',
+                                        'username' => 'bi-person-badge',
+                                    ];
+                                @endphp
+                                @foreach(\Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::applicationTargets() as $target)
+                                    <label class="skinsystem-delivery-option skinsystem-target-option">
+                                        <input class="visually-hidden"
+                                               type="radio"
+                                               name="application_target"
+                                               value="{{ $target }}"
+                                               @checked(old('application_target', $applicationTarget) === $target)>
+                                        <span class="skinsystem-delivery-icon" aria-hidden="true">
+                                            <i class="bi {{ $applicationTargetIcons[$target] }}"></i>
+                                        </span>
+                                        <span class="skinsystem-delivery-copy">
+                                            <strong>{{ trans('skinsystem::admin.settings.application_targets.'.$target.'.title') }}</strong>
+                                            <small>{{ trans('skinsystem::admin.settings.application_targets.'.$target.'.description') }}</small>
+                                        </span>
+                                        <span class="skinsystem-delivery-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('application_target')
+                                <div class="text-danger small mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </section>
             </div>

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 class SkinMigrationTest extends TestCase
 {
+    private const APPLICATION_TARGET_MIGRATION = '2026_09_01_000001_add_application_targets_to_skinsystem_sync_tables.php';
+
     private const TABLE_MIGRATIONS = [
         'skinsystem_skins' => '2026_08_25_000001_create_skinsystem_skins_table.php',
         'skinsystem_skin_revisions' => '2026_08_25_000002_create_skinsystem_skin_revisions_table.php',
@@ -21,7 +23,7 @@ class SkinMigrationTest extends TestCase
     {
         $migrations = $this->tableMigrations();
 
-        $this->assertCount(6, glob($this->migrationDirectory().'/*.php'));
+        $this->assertCount(7, glob($this->migrationDirectory().'/*.php'));
 
         foreach (self::TABLE_MIGRATIONS as $table => $migrationName) {
             $this->assertArrayHasKey($migrationName, $migrations);
@@ -95,6 +97,8 @@ class SkinMigrationTest extends TestCase
             $migrations[$migrationName] = require $this->migrationDirectory().'/'.$migrationName;
         }
 
+        $migrations[self::APPLICATION_TARGET_MIGRATION] = require $this->migrationDirectory().'/'.self::APPLICATION_TARGET_MIGRATION;
+
         return $migrations;
     }
 
@@ -117,12 +121,16 @@ class SkinMigrationTest extends TestCase
         ]));
         $this->assertTrue(Schema::hasColumns('skinsystem_sync_states', [
             'target_uuid',
+            'target_type',
+            'target_value',
             'target_server_id',
             'queued_command_id',
             'dispatched_at',
             'error',
         ]));
         $this->assertTrue(Schema::hasColumns('skinsystem_sync_targets', [
+            'target_type',
+            'target_value',
             'clear_revision',
             'queued_clear_command_id',
             'clear_may_be_in_flight',

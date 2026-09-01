@@ -72,6 +72,18 @@ return [
         'select_server' => 'Select an executable server',
         'server_help' => 'Only Minecraft AzLink and RCON servers that can execute console commands are available.',
         'no_servers' => 'No compatible executable Minecraft server is available. Configure AzLink or RCON in Azuriom first.',
+        'application_target' => 'Player identifier',
+        'application_target_help' => 'Choose the value sent to SkinsRestorer as the command target.',
+        'application_targets' => [
+            'uuid' => [
+                'title' => 'Use UUID',
+                'description' => 'Send the immutable Minecraft UUID stored on the Azuriom account. Recommended for stable identity tracking.',
+            ],
+            'username' => [
+                'title' => 'Use username',
+                'description' => 'Send the Minecraft username stored on the Azuriom account. Use this when SkinsRestorer resolves players by name.',
+            ],
+        ],
         'library_limit' => 'Saved skins per user',
         'library_limit_help' => 'Maximum number of reusable skins an authorized user can keep in their personal library (1–100).',
         'library_title' => 'Library and delivery',
@@ -160,6 +172,7 @@ return [
         'library_limit_min' => 'The saved skins limit must be at least 1.',
         'library_limit_max' => 'The saved skins limit may not exceed 100.',
         'user_menu_icon_format' => 'Enter one valid Bootstrap Icons class, such as bi-person-bounding-box.',
+        'application_target_invalid' => 'Select UUID or username as the player identifier.',
         'mineskin_key_required' => 'MineSkin mode requires a valid global MineSkin API key.',
         'mineskin_invalid_key' => 'MineSkin rejected this API key. Verify it in your MineSkin account and try again.',
         'mineskin_unavailable' => 'SkinSystem could not verify the key because MineSkin is unavailable. No MineSkin setting was changed.',

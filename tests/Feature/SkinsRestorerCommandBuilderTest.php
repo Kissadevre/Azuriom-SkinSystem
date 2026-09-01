@@ -5,6 +5,7 @@ namespace Azuriom\Plugin\SkinSystem\Tests\Feature;
 use Azuriom\Plugin\SkinSystem\Exceptions\SyncPreconditionException;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Services\SkinsRestorerCommandBuilder;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\TestCase;
 
 class SkinsRestorerCommandBuilderTest extends TestCase
@@ -23,6 +24,38 @@ class SkinsRestorerCommandBuilderTest extends TestCase
             'skin clear '.self::PRIMARY_UUID,
             $builder->clearSkin('123456781234423482341234567890AB'),
         );
+    }
+
+    public function test_set_and_clear_commands_accept_a_valid_minecraft_username(): void
+    {
+        $builder = app(SkinsRestorerCommandBuilder::class);
+
+        $this->assertSame(
+            'skin set "https://skins.example.com/api/skinsystem/skins/1/3-'
+                .str_repeat('a', 64).'.png" Player_123 slim',
+            $builder->setSkin(
+                $this->skin(),
+                'Player_123',
+                targetType: SkinSystemSettings::TARGET_USERNAME,
+            ),
+        );
+        $this->assertSame(
+            'skin clear Player_123',
+            $builder->clearSkin('Player_123', SkinSystemSettings::TARGET_USERNAME),
+        );
+
+        foreach (['', 'name-with-dash', 'this_name_is_too_long'] as $username) {
+            try {
+                $builder->setSkin(
+                    $this->skin(),
+                    $username,
+                    targetType: SkinSystemSettings::TARGET_USERNAME,
+                );
+                $this->fail("The invalid username {$username} was accepted.");
+            } catch (SyncPreconditionException $exception) {
+                $this->assertSame('invalid_game_username', $exception->reason);
+            }
+        }
     }
 
     public function test_private_ipv4_and_bracketed_ipv6_hosts_are_rejected(): void

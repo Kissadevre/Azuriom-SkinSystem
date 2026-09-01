@@ -127,6 +127,8 @@ return [
             'sync_disabled' => 'La sincronización con el servidor está desactivada actualmente por un administrador.',
             'server_unavailable' => 'El servidor de Minecraft configurado no está disponible o no puede ejecutar comandos.',
             'invalid_game_id' => 'Tu cuenta no contiene un UUID de Minecraft válido, por lo que no se envió el comando al servidor.',
+            'invalid_game_username' => 'Tu cuenta no contiene un username de Minecraft válido (1–16 letras, números o guiones bajos), por lo que no se envió el comando al servidor.',
+            'invalid_application_target' => 'El método configurado para identificar al jugador no es válido. Solicita a un administrador que revise los ajustes de SkinSystem.',
             'invalid_variant' => 'El modelo de brazos resuelto no es válido. Vuelve a subir la skin antes de reintentar.',
             'invalid_public_url' => 'La URL pública generada para la skin no es válida o contiene caracteres inseguros.',
             'insecure_public_url' => 'La URL pública de la skin debe usar HTTPS antes de enviarse a SkinsRestorer.',

@@ -34,6 +34,7 @@ class AdminController extends Controller
             'showInUserMenu' => $settings->showInUserMenu(),
             'userMenuIcon' => $settings->userMenuIcon(),
             'deliveryMode' => $settings->deliveryMode(),
+            'applicationTarget' => $settings->applicationTarget(),
             'hasMineSkinApiKey' => $settings->hasMineSkinApiKey(),
             'mineSkinCapesGranted' => $settings->mineSkinCapesGranted(),
             'totalSkins' => Skin::query()->count(),
@@ -98,6 +99,7 @@ class AdminController extends Controller
             SkinSystemSettings::USER_MENU_ENABLED_KEY => $request->boolean('user_menu_enabled'),
             SkinSystemSettings::USER_MENU_ICON_KEY => $data['user_menu_icon'],
             SkinSystemSettings::DELIVERY_MODE_KEY => $data['delivery_mode'],
+            SkinSystemSettings::APPLICATION_TARGET_KEY => $data['application_target'],
         ], $mineSkinSettings));
 
         return back()->with('success', trans('skinsystem::admin.updated'));

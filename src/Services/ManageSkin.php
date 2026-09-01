@@ -224,12 +224,20 @@ class ManageSkin
                 ?? $this->commands->canonicalUuid($user->game_id);
             $targetServerId = $previousState?->target_server_id
                 ?? $this->settings->serverId();
+            $targetType = $previousState?->target_type
+                ?? $this->settings->applicationTarget();
+            $targetValue = $previousState?->target_value
+                ?? ($targetType === SkinSystemSettings::TARGET_UUID
+                    ? $targetUuid
+                    : $this->commandTarget($user, $targetType));
 
             $this->targets->beginClear(
                 (int) $user->getKey(),
                 $skin->revision,
                 $targetUuid,
                 $targetServerId,
+                $targetType,
+                $targetValue,
             );
 
             $state = SkinSyncState::query()->updateOrCreate(
@@ -239,6 +247,8 @@ class ManageSkin
                     'skin_revision' => $skin->revision,
                     'status' => SkinSyncState::STATUS_PENDING,
                     'target_uuid' => $targetUuid,
+                    'target_type' => $targetType,
+                    'target_value' => $targetValue,
                     'target_server_id' => $targetServerId,
                     'queued_command_id' => null,
                     'dispatched_at' => null,
@@ -314,13 +324,23 @@ class ManageSkin
                 (int) $user->getKey(),
                 $previousState->target_uuid,
                 $previousState->target_server_id,
+                $previousState->target_type,
+                $previousState->target_value,
             );
         }
 
         $this->forgetQueuedCommand($user, $previousState);
         $targetUuid = $this->commands->canonicalUuid($user->game_id);
         $targetServerId = $this->settings->serverId();
-        $this->targets->activate((int) $user->getKey(), $targetUuid, $targetServerId);
+        $targetType = $this->settings->applicationTarget();
+        $targetValue = $this->commandTarget($user, $targetType);
+        $this->targets->activate(
+            (int) $user->getKey(),
+            $targetUuid,
+            $targetServerId,
+            $targetType,
+            $targetValue,
+        );
 
         SkinSyncState::query()->updateOrCreate(
             ['user_id' => $user->getKey()],
@@ -329,6 +349,8 @@ class ManageSkin
                 'skin_revision' => $skin->revision,
                 'status' => SkinSyncState::STATUS_PENDING,
                 'target_uuid' => $targetUuid,
+                'target_type' => $targetType,
+                'target_value' => $targetValue,
                 'target_server_id' => $targetServerId,
                 'queued_command_id' => null,
                 'dispatched_at' => null,
@@ -337,6 +359,13 @@ class ManageSkin
         );
 
         return ['skin' => $skin, 'changed' => true];
+    }
+
+    private function commandTarget(User $user, string $targetType): ?string
+    {
+        return $targetType === SkinSystemSettings::TARGET_USERNAME
+            ? $this->commands->canonicalUsername($user->name)
+            : $this->commands->canonicalUuid($user->game_id);
     }
 
     private function appearanceHash(string $sha256, string $variant, ?string $capeId): string
