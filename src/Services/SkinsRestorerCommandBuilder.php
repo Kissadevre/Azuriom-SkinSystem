@@ -9,13 +9,13 @@ class SkinsRestorerCommandBuilder
 {
     public const MAX_URL_LENGTH = 266;
 
-    public function setSkin(Skin $skin, string $targetUuid, ?string $sourceUrl = null): string
-    {
-        $uuid = $this->canonicalUuid($targetUuid);
-
-        if ($uuid === null) {
-            throw new SyncPreconditionException('invalid_game_id');
-        }
+    public function setSkin(
+        Skin $skin,
+        string $target,
+        ?string $sourceUrl = null,
+        string $targetType = SkinSystemSettings::TARGET_UUID,
+    ): string {
+        $target = $this->validatedTarget($target, $targetType);
 
         if (! in_array($skin->resolved_variant, [Skin::VARIANT_CLASSIC, Skin::VARIANT_SLIM], true)) {
             throw new SyncPreconditionException('invalid_variant');
@@ -24,18 +24,14 @@ class SkinsRestorerCommandBuilder
         $url = $sourceUrl ?? $skin->publicUrl();
         $this->validatePublicUrl($url);
 
-        return sprintf('skin set "%s" %s %s', $url, $uuid, $skin->resolved_variant);
+        return sprintf('skin set "%s" %s %s', $url, $target, $skin->resolved_variant);
     }
 
-    public function clearSkin(string $targetUuid): string
-    {
-        $uuid = $this->canonicalUuid($targetUuid);
-
-        if ($uuid === null) {
-            throw new SyncPreconditionException('invalid_game_id');
-        }
-
-        return 'skin clear '.$uuid;
+    public function clearSkin(
+        string $target,
+        string $targetType = SkinSystemSettings::TARGET_UUID,
+    ): string {
+        return 'skin clear '.$this->validatedTarget($target, $targetType);
     }
 
     public function canonicalUuid(?string $gameId): ?string
@@ -52,6 +48,40 @@ class SkinsRestorerCommandBuilder
             .substr($hex, 12, 4).'-'
             .substr($hex, 16, 4).'-'
             .substr($hex, 20, 12);
+    }
+
+    public function canonicalUsername(?string $username): ?string
+    {
+        if ($username === null || preg_match('/^[A-Za-z0-9_]{1,16}$/D', $username) !== 1) {
+            return null;
+        }
+
+        return $username;
+    }
+
+    public function validatedTarget(string $target, string $targetType): string
+    {
+        if ($targetType === SkinSystemSettings::TARGET_UUID) {
+            $uuid = $this->canonicalUuid($target);
+
+            if ($uuid === null) {
+                throw new SyncPreconditionException('invalid_game_id');
+            }
+
+            return $uuid;
+        }
+
+        if ($targetType === SkinSystemSettings::TARGET_USERNAME) {
+            $username = $this->canonicalUsername($target);
+
+            if ($username === null) {
+                throw new SyncPreconditionException('invalid_game_username');
+            }
+
+            return $username;
+        }
+
+        throw new SyncPreconditionException('invalid_application_target');
     }
 
     private function validatePublicUrl(string $url): void

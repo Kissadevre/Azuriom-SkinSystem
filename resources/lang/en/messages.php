@@ -127,6 +127,8 @@ return [
             'sync_disabled' => 'Server synchronization is currently disabled by an administrator.',
             'server_unavailable' => 'The configured Minecraft server is unavailable or cannot execute commands.',
             'invalid_game_id' => 'Your account does not contain a valid Minecraft UUID, so the server command was not submitted.',
+            'invalid_game_username' => 'Your account does not contain a valid Minecraft username (1–16 letters, numbers, or underscores), so the server command was not submitted.',
+            'invalid_application_target' => 'The configured player identifier method is invalid. Ask an administrator to review SkinSystem settings.',
             'invalid_variant' => 'The resolved arm model is invalid. Upload the skin again before retrying.',
             'invalid_public_url' => 'The generated public skin URL is invalid or contains unsafe characters.',
             'insecure_public_url' => 'The public skin URL must use HTTPS before it can be submitted to SkinsRestorer.',

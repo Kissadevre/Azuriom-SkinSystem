@@ -108,12 +108,18 @@ class SkinSystemServiceProvider extends BasePluginServiceProvider
      */
     protected function userNavigation(): array
     {
+        $settings = $this->app->make(SkinSystemSettings::class);
+
+        if (! $settings->showInUserMenu()) {
+            return [];
+        }
+
         return [
             'skinsystem' => [
                 'route' => 'skinsystem.index',
                 'name' => trans('skinsystem::messages.title'),
                 'permission' => 'skinsystem.skin',
-                'icon' => 'bi bi-person-bounding-box',
+                'icon' => 'bi '.$settings->userMenuIcon(),
             ],
         ];
     }

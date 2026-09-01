@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $skin_revision
  * @property string $status
  * @property string|null $target_uuid
+ * @property string $target_type
+ * @property string|null $target_value
  * @property int|null $target_server_id
  * @property int|null $queued_command_id Exact AzLink SET row owned by this operation
  * @property \Carbon\Carbon|null $dispatched_at
@@ -46,6 +48,8 @@ class SkinSyncState extends Model
         'skin_revision',
         'status',
         'target_uuid',
+        'target_type',
+        'target_value',
         'target_server_id',
         'queued_command_id',
         'dispatched_at',

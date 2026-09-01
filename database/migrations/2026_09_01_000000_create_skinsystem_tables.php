@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('skinsystem_skins', function (Blueprint $table) {
@@ -52,6 +49,8 @@ return new class extends Migration
             $table->unsignedInteger('skin_revision')->nullable();
             $table->string('status', 24)->default('pending')->index();
             $table->char('target_uuid', 36)->nullable();
+            $table->string('target_type', 16)->default('uuid');
+            $table->string('target_value', 64)->nullable();
             $table->unsignedInteger('target_server_id')->nullable()->index();
             // This column owns only the current SET row. Per-target CLEAR
             // ownership lives in skinsystem_sync_targets.
@@ -67,6 +66,8 @@ return new class extends Migration
             $table->increments('id');
             $table->unsignedInteger('user_id');
             $table->char('target_uuid', 36);
+            $table->string('target_type', 16)->default('uuid');
+            $table->string('target_value', 64)->nullable();
             $table->unsignedInteger('target_server_id');
             $table->string('status', 24)->default('possible_active')->index();
             $table->unsignedInteger('clear_revision')->nullable()->index();
@@ -77,8 +78,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(
-                ['user_id', 'target_uuid', 'target_server_id'],
-                'skinsystem_sync_target_unique',
+                ['user_id', 'target_type', 'target_value', 'target_server_id'],
+                'skinsystem_sync_target_identity_unique',
             );
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
@@ -120,9 +121,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('skinsystem_mineskin_generations');

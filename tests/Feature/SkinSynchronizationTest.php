@@ -15,6 +15,7 @@ use Azuriom\Plugin\SkinSystem\Services\SkinsRestorerCommandBuilder;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
 use Azuriom\Plugin\SkinSystem\Services\SkinSynchronizer;
 use Azuriom\Plugin\SkinSystem\Services\SkinSyncTargetRegistry;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Support\SyncResult;
 use Azuriom\Plugin\SkinSystem\Tests\Fakes\ConfigurableSkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\Fakes\RecordingServerBridge;
@@ -24,6 +25,40 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 class SkinSynchronizationTest extends TestCase
 {
+    public function test_username_mode_is_snapshotted_for_set_and_clear_commands(): void
+    {
+        $user = $this->createUser(name: 'Player_123');
+        $server = $this->createServer();
+        $settings = $this->settings($server);
+        $settings->selectedApplicationTarget = SkinSystemSettings::TARGET_USERNAME;
+        $stored = $this->manager($settings)->store(
+            $user,
+            $this->uploadedSkin(60, 120, 180),
+            Skin::VARIANT_CLASSIC,
+        );
+        $skin = $stored['skin'];
+        $state = SkinSyncState::query()->sole();
+
+        $this->assertSame(SkinSystemSettings::TARGET_USERNAME, $state->target_type);
+        $this->assertSame('Player_123', $state->target_value);
+
+        $set = $this->synchronizer($settings)->apply($skin, $user);
+
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $set->status);
+        $this->assertStringEndsWith(
+            ' Player_123 classic',
+            ServerCommand::query()->findOrFail($state->fresh()->queued_command_id)->command,
+        );
+
+        $clearState = $this->manager($settings)->delete($user);
+        $clear = $this->synchronizer($settings)->clear($user, $clearState?->skin_revision);
+
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $clear->status);
+        $this->assertTrue(
+            ServerCommand::query()->where('command', 'skin clear Player_123')->exists(),
+        );
+    }
+
     public function test_azlink_queues_the_exact_command_and_replaces_only_its_owned_row(): void
     {
         $user = $this->createUser('123456781234423482341234567890AB');

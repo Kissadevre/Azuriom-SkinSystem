@@ -13,6 +13,8 @@ class ConfigurableSkinSystemSettings extends SkinSystemSettings
 
     public string $selectedDeliveryMode = self::DELIVERY_DIRECT;
 
+    public string $selectedApplicationTarget = self::TARGET_UUID;
+
     public ?string $configuredMineSkinApiKey = null;
 
     public function enabled(): bool
@@ -28,6 +30,11 @@ class ConfigurableSkinSystemSettings extends SkinSystemSettings
     public function deliveryMode(): string
     {
         return $this->selectedDeliveryMode;
+    }
+
+    public function applicationTarget(): string
+    {
+        return $this->selectedApplicationTarget;
     }
 
     public function mineSkinApiKey(): ?string

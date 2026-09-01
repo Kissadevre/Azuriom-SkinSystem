@@ -69,7 +69,7 @@
     <form method="POST" action="{{ route('skinsystem.admin.update') }}">
         @csrf
         @method('PUT')
-        <input type="hidden" name="remove_mineskin_api_key" value="0">
+        <input type="hidden" name="remove_mineskin_api_key" id="removeMineSkinApiKey" value="0">
 
         <section class="card skinsystem-admin-card mb-4">
             <div class="card-header skinsystem-admin-card-header">
@@ -82,18 +82,40 @@
                 </div>
             </div>
             <div class="card-body p-4">
+                @php
+                    $deliveryModeIcons = [
+                        'direct' => 'bi-link-45deg',
+                        'mineskin' => 'bi-cloud-arrow-up',
+                        'hybrid' => 'bi-intersect',
+                    ];
+                    $mineSkinKeyHasError = $errors->has('mineskin_api_key');
+                @endphp
+
+                <div class="skinsystem-section-heading">
+                    <span class="skinsystem-section-label">{{ trans('skinsystem::admin.delivery.mode_heading') }}</span>
+                    <span class="text-muted small">{{ trans('skinsystem::admin.delivery.mode_help') }}</span>
+                </div>
                 <div class="skinsystem-delivery-grid mb-4">
                     @foreach(\Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::deliveryModes() as $mode)
                         <label class="skinsystem-delivery-option">
-                            <input class="form-check-input"
+                            <input class="visually-hidden"
                                    type="radio"
                                    name="delivery_mode"
                                    value="{{ $mode }}"
                                    @checked(old('delivery_mode', $deliveryMode) === $mode)>
-                            <span>
-                                <strong>{{ trans('skinsystem::admin.delivery.modes.'.$mode.'.title') }}</strong>
+                            <span class="skinsystem-delivery-icon" aria-hidden="true">
+                                <i class="bi {{ $deliveryModeIcons[$mode] }}"></i>
+                            </span>
+                            <span class="skinsystem-delivery-copy">
+                                <span class="d-flex align-items-center flex-wrap gap-2">
+                                    <strong>{{ trans('skinsystem::admin.delivery.modes.'.$mode.'.title') }}</strong>
+                                    @if($mode === 'hybrid')
+                                        <span class="badge rounded-pill text-bg-primary">{{ trans('skinsystem::admin.delivery.recommended') }}</span>
+                                    @endif
+                                </span>
                                 <small>{{ trans('skinsystem::admin.delivery.modes.'.$mode.'.description') }}</small>
                             </span>
+                            <span class="skinsystem-delivery-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
                         </label>
                     @endforeach
                 </div>
@@ -101,61 +123,121 @@
                     <div class="text-danger small mb-3">{{ $message }}</div>
                 @enderror
 
-                <div class="row g-3 align-items-end">
-                    <div class="col-lg-8">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <label class="form-label fw-semibold mb-0" for="mineSkinApiKey">
+                <section class="skinsystem-mineskin-panel"
+                         data-mineskin-integration
+                         data-key-configured="{{ $hasMineSkinApiKey ? 'true' : 'false' }}"
+                         data-editor-open="{{ $mineSkinKeyHasError || ! $hasMineSkinApiKey ? 'true' : 'false' }}">
+                    <div class="skinsystem-mineskin-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="skinsystem-mineskin-mark" aria-hidden="true">
+                                <i class="bi bi-cloud-check"></i>
+                            </span>
+                            <div>
+                                <h3 class="h6 mb-1">{{ trans('skinsystem::admin.delivery.integration_title') }}</h3>
+                                <p class="small text-muted mb-0">{{ trans('skinsystem::admin.delivery.integration_description') }}</p>
+                            </div>
+                        </div>
+                        <span class="skinsystem-status-pill {{ $hasMineSkinApiKey ? 'is-connected' : 'is-missing' }}">
+                            <span aria-hidden="true"></span>
+                            {{ trans($hasMineSkinApiKey
+                                ? 'skinsystem::admin.delivery.key_configured'
+                                : 'skinsystem::admin.delivery.key_missing') }}
+                        </span>
+                    </div>
+
+                    <div class="skinsystem-integration-body">
+                        <div class="skinsystem-capability-grid">
+                            <div class="skinsystem-capability {{ $hasMineSkinApiKey ? 'is-success' : 'is-muted' }}">
+                                <span class="skinsystem-capability-icon" aria-hidden="true">
+                                    <i class="bi {{ $hasMineSkinApiKey ? 'bi-shield-check' : 'bi-shield-lock' }}"></i>
+                                </span>
+                                <span>
+                                    <small>{{ trans('skinsystem::admin.delivery.connection_title') }}</small>
+                                    <strong>{{ trans($hasMineSkinApiKey
+                                        ? 'skinsystem::admin.delivery.connection_verified'
+                                        : 'skinsystem::admin.delivery.connection_missing') }}</strong>
+                                </span>
+                            </div>
+
+                            <div class="skinsystem-capability {{ ! $hasMineSkinApiKey ? 'is-muted' : ($mineSkinCapesGranted ? 'is-success' : 'is-warning') }}">
+                                <span class="skinsystem-capability-icon" aria-hidden="true">
+                                    <i class="bi {{ $mineSkinCapesGranted ? 'bi-person-badge' : 'bi-person-x' }}"></i>
+                                </span>
+                                <span>
+                                    <small>{{ trans('skinsystem::admin.delivery.cape_access_title') }}</small>
+                                    <strong>{{ trans(! $hasMineSkinApiKey
+                                        ? 'skinsystem::admin.delivery.connection_missing'
+                                        : ($mineSkinCapesGranted
+                                            ? 'skinsystem::admin.delivery.capes_available_short'
+                                            : 'skinsystem::admin.delivery.capes_unavailable_short')) }}</strong>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="skinsystem-key-editor" data-mineskin-key-editor @if($hasMineSkinApiKey && ! $mineSkinKeyHasError) hidden @endif>
+                            <label class="form-label fw-semibold" for="mineSkinApiKey">
                                 {{ trans('skinsystem::admin.delivery.api_key') }}
                             </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key" aria-hidden="true"></i></span>
+                                <input class="form-control @error('mineskin_api_key') is-invalid @enderror"
+                                       type="password"
+                                       id="mineSkinApiKey"
+                                       name="mineskin_api_key"
+                                       value=""
+                                       maxlength="512"
+                                       autocomplete="new-password"
+                                       placeholder="{{ $hasMineSkinApiKey ? trans('skinsystem::admin.delivery.key_keep_placeholder') : trans('skinsystem::admin.delivery.key_placeholder') }}"
+                                       aria-describedby="mineSkinApiKeyHelp">
+                                <button class="btn btn-outline-secondary"
+                                        type="button"
+                                        data-mineskin-key-visibility
+                                        data-show-label="{{ trans('skinsystem::admin.delivery.show_key') }}"
+                                        data-hide-label="{{ trans('skinsystem::admin.delivery.hide_key') }}"
+                                        aria-label="{{ trans('skinsystem::admin.delivery.show_key') }}"
+                                        title="{{ trans('skinsystem::admin.delivery.show_key') }}">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                                @error('mineskin_api_key')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="form-text" id="mineSkinApiKeyHelp">
+                                <i class="bi bi-lock me-1" aria-hidden="true"></i>
+                                {{ trans('skinsystem::admin.delivery.api_key_help') }}
+                            </div>
                             @if($hasMineSkinApiKey)
-                                <span class="badge text-bg-success">{{ trans('skinsystem::admin.delivery.key_configured') }}</span>
-                            @else
-                                <span class="badge text-bg-secondary">{{ trans('skinsystem::admin.delivery.key_missing') }}</span>
+                                <button class="btn btn-sm btn-link px-0 mt-2" type="button" data-mineskin-cancel-edit>
+                                    {{ trans('skinsystem::admin.delivery.cancel_replace') }}
+                                </button>
                             @endif
                         </div>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-key" aria-hidden="true"></i></span>
-                            <input class="form-control @error('mineskin_api_key') is-invalid @enderror"
-                                   type="password"
-                                   id="mineSkinApiKey"
-                                   name="mineskin_api_key"
-                                   value=""
-                                   maxlength="512"
-                                   autocomplete="new-password"
-                                   placeholder="{{ $hasMineSkinApiKey ? trans('skinsystem::admin.delivery.key_keep_placeholder') : trans('skinsystem::admin.delivery.key_placeholder') }}"
-                                   aria-describedby="mineSkinApiKeyHelp">
-                            @error('mineskin_api_key')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-text" id="mineSkinApiKeyHelp">
-                            {{ trans('skinsystem::admin.delivery.api_key_help') }}
-                        </div>
-                    </div>
-                    <div class="col-lg-4">
+
                         @if($hasMineSkinApiKey)
-                            <div class="d-flex flex-column gap-2">
-                                <div class="small {{ $mineSkinCapesGranted ? 'text-success' : 'text-warning' }}">
-                                    <i class="bi {{ $mineSkinCapesGranted ? 'bi-check-circle' : 'bi-exclamation-triangle' }} me-1" aria-hidden="true"></i>
-                                    {{ trans($mineSkinCapesGranted
-                                        ? 'skinsystem::admin.delivery.capes_available'
-                                        : 'skinsystem::admin.delivery.capes_unavailable') }}
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="remove_mineskin_api_key" value="1" id="removeMineSkinApiKey">
-                                    <label class="form-check-label text-danger" for="removeMineSkinApiKey">
-                                        {{ trans('skinsystem::admin.delivery.remove_key') }}
-                                    </label>
-                                </div>
+                            <div class="skinsystem-key-actions" data-mineskin-key-actions>
+                                <button class="btn btn-outline-primary" type="button" data-mineskin-replace>
+                                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
+                                    {{ trans('skinsystem::admin.delivery.replace_key') }}
+                                </button>
+                                <button class="btn btn-outline-danger" type="button" data-mineskin-remove>
+                                    <i class="bi bi-trash3 me-1" aria-hidden="true"></i>
+                                    {{ trans('skinsystem::admin.delivery.remove_key') }}
+                                </button>
                             </div>
-                        @else
-                            <div class="small text-muted">
-                                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>
-                                {{ trans('skinsystem::admin.delivery.cape_hidden_without_key') }}
+
+                            <div class="skinsystem-removal-notice" data-mineskin-removal-notice hidden>
+                                <span class="skinsystem-removal-icon" aria-hidden="true"><i class="bi bi-exclamation-triangle"></i></span>
+                                <span class="flex-grow-1">
+                                    <strong>{{ trans('skinsystem::admin.delivery.remove_pending_title') }}</strong>
+                                    <small>{{ trans('skinsystem::admin.delivery.remove_pending') }}</small>
+                                </span>
+                                <button class="btn btn-sm btn-outline-danger" type="button" data-mineskin-cancel-removal>
+                                    {{ trans('skinsystem::admin.delivery.undo_remove') }}
+                                </button>
                             </div>
                         @endif
                     </div>
-                </div>
+                </section>
             </div>
         </section>
 
@@ -205,6 +287,41 @@
                                 @enderror
                             </div>
                             <div class="form-text">{{ trans('skinsystem::admin.settings.server_help') }}</div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="skinsystem-section-heading">
+                                <span class="skinsystem-section-label">{{ trans('skinsystem::admin.settings.application_target') }}</span>
+                                <span class="text-muted small">{{ trans('skinsystem::admin.settings.application_target_help') }}</span>
+                            </div>
+                            <div class="skinsystem-target-grid">
+                                @php
+                                    $applicationTargetIcons = [
+                                        'uuid' => 'bi-fingerprint',
+                                        'username' => 'bi-person-badge',
+                                    ];
+                                @endphp
+                                @foreach(\Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::applicationTargets() as $target)
+                                    <label class="skinsystem-delivery-option skinsystem-target-option">
+                                        <input class="visually-hidden"
+                                               type="radio"
+                                               name="application_target"
+                                               value="{{ $target }}"
+                                               @checked(old('application_target', $applicationTarget) === $target)>
+                                        <span class="skinsystem-delivery-icon" aria-hidden="true">
+                                            <i class="bi {{ $applicationTargetIcons[$target] }}"></i>
+                                        </span>
+                                        <span class="skinsystem-delivery-copy">
+                                            <strong>{{ trans('skinsystem::admin.settings.application_targets.'.$target.'.title') }}</strong>
+                                            <small>{{ trans('skinsystem::admin.settings.application_targets.'.$target.'.description') }}</small>
+                                        </span>
+                                        <span class="skinsystem-delivery-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('application_target')
+                                <div class="text-danger small mt-2">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </section>
@@ -261,6 +378,75 @@
                 </section>
             </div>
         </div>
+
+        @php
+            $userMenuIconValue = old('user_menu_icon', $userMenuIcon);
+            $userMenuIconPreview = is_string($userMenuIconValue)
+                && preg_match('/^bi-[a-z0-9]+(?:-[a-z0-9]+)*$/D', $userMenuIconValue) === 1
+                    ? $userMenuIconValue
+                    : \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DEFAULT_USER_MENU_ICON;
+        @endphp
+        <section class="card skinsystem-admin-card mb-4">
+            <div class="card-header skinsystem-admin-card-header">
+                <span class="skinsystem-admin-icon text-info bg-info bg-opacity-10">
+                    <i class="bi bi-person-lines-fill" aria-hidden="true"></i>
+                </span>
+                <div>
+                    <h2 class="h5 mb-1">{{ trans('skinsystem::admin.settings.user_menu_title') }}</h2>
+                    <p class="text-muted small mb-0">{{ trans('skinsystem::admin.settings.user_menu_description') }}</p>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4 align-items-stretch">
+                    <div class="col-lg-7">
+                        <div class="skinsystem-setting-row h-100">
+                            <label for="userMenuEnabled" class="mb-0">
+                                <span class="d-block fw-semibold">{{ trans('skinsystem::admin.settings.user_menu_enabled') }}</span>
+                                <small class="text-muted">{{ trans('skinsystem::admin.settings.user_menu_enabled_help') }}</small>
+                            </label>
+                            <input type="hidden" name="user_menu_enabled" value="0">
+                            <div class="form-check form-switch fs-4 mb-0">
+                                <input class="form-check-input @error('user_menu_enabled') is-invalid @enderror"
+                                       type="checkbox"
+                                       name="user_menu_enabled"
+                                       value="1"
+                                       id="userMenuEnabled"
+                                       @checked(old('user_menu_enabled', $showInUserMenu))>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <label class="form-label fw-semibold" for="userMenuIcon">
+                            {{ trans('skinsystem::admin.settings.user_menu_icon') }}
+                        </label>
+                        <div class="input-group @error('user_menu_icon') has-validation @enderror">
+                            <span class="input-group-text skinsystem-icon-preview" aria-hidden="true">
+                                <i class="bi {{ $userMenuIconPreview }}" data-user-menu-icon-preview></i>
+                            </span>
+                            <input class="form-control font-monospace @error('user_menu_icon') is-invalid @enderror"
+                                   type="text"
+                                   id="userMenuIcon"
+                                   name="user_menu_icon"
+                                   value="{{ $userMenuIconValue }}"
+                                   maxlength="64"
+                                   pattern="bi-[a-z0-9]+(?:-[a-z0-9]+)*"
+                                   placeholder="{{ \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DEFAULT_USER_MENU_ICON }}"
+                                   autocomplete="off"
+                                   data-user-menu-icon
+                                   data-default-icon="{{ \Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings::DEFAULT_USER_MENU_ICON }}"
+                                   aria-describedby="userMenuIconHelp"
+                                   required>
+                            @error('user_menu_icon')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-text" id="userMenuIconHelp">
+                            {!! trans('skinsystem::admin.settings.user_menu_icon_help') !!}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <div class="d-flex justify-content-end mb-4">
             <button type="submit" class="btn btn-primary btn-lg px-4">

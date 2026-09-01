@@ -31,7 +31,10 @@ class AdminController extends Controller
             'syncEnabled' => $settings->enabled(),
             'serverId' => $settings->serverId(),
             'libraryLimit' => $settings->libraryLimit(),
+            'showInUserMenu' => $settings->showInUserMenu(),
+            'userMenuIcon' => $settings->userMenuIcon(),
             'deliveryMode' => $settings->deliveryMode(),
+            'applicationTarget' => $settings->applicationTarget(),
             'hasMineSkinApiKey' => $settings->hasMineSkinApiKey(),
             'mineSkinCapesGranted' => $settings->mineSkinCapesGranted(),
             'totalSkins' => Skin::query()->count(),
@@ -93,7 +96,10 @@ class AdminController extends Controller
             SkinSystemSettings::ENABLED_KEY => $request->boolean('sync_enabled'),
             SkinSystemSettings::SERVER_KEY => isset($data['server_id']) ? (int) $data['server_id'] : null,
             SkinSystemSettings::LIBRARY_LIMIT_KEY => (int) $data['library_limit'],
+            SkinSystemSettings::USER_MENU_ENABLED_KEY => $request->boolean('user_menu_enabled'),
+            SkinSystemSettings::USER_MENU_ICON_KEY => $data['user_menu_icon'],
             SkinSystemSettings::DELIVERY_MODE_KEY => $data['delivery_mode'],
+            SkinSystemSettings::APPLICATION_TARGET_KEY => $data['application_target'],
         ], $mineSkinSettings));
 
         return back()->with('success', trans('skinsystem::admin.updated'));
