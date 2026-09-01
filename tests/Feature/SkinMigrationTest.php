@@ -8,52 +8,49 @@ use Illuminate\Support\Facades\Schema;
 
 class SkinMigrationTest extends TestCase
 {
-    private const APPLICATION_TARGET_MIGRATION = '2026_09_01_000001_add_application_targets_to_skinsystem_sync_tables.php';
+    private const BASELINE_MIGRATION = '2026_09_01_000000_create_skinsystem_tables.php';
 
-    private const TABLE_MIGRATIONS = [
-        'skinsystem_skins' => '2026_08_25_000001_create_skinsystem_skins_table.php',
-        'skinsystem_skin_revisions' => '2026_08_25_000002_create_skinsystem_skin_revisions_table.php',
-        'skinsystem_sync_states' => '2026_08_25_000003_create_skinsystem_sync_states_table.php',
-        'skinsystem_sync_targets' => '2026_08_25_000004_create_skinsystem_sync_targets_table.php',
-        'skinsystem_saved_skins' => '2026_08_25_000005_create_skinsystem_saved_skins_table.php',
-        'skinsystem_mineskin_generations' => '2026_08_25_000006_create_skinsystem_mineskin_generations_table.php',
+    private const TABLES = [
+        'skinsystem_skins',
+        'skinsystem_skin_revisions',
+        'skinsystem_sync_states',
+        'skinsystem_sync_targets',
+        'skinsystem_saved_skins',
+        'skinsystem_mineskin_generations',
     ];
 
-    public function test_split_migrations_create_and_drop_their_own_tables(): void
+    public function test_baseline_migration_creates_and_drops_the_complete_schema(): void
     {
-        $migrations = $this->tableMigrations();
+        $migration = $this->baselineMigration();
 
-        $this->assertCount(7, glob($this->migrationDirectory().'/*.php'));
+        $this->assertSame(
+            [self::BASELINE_MIGRATION],
+            array_map('basename', glob($this->migrationDirectory().'/*.php')),
+        );
 
-        foreach (self::TABLE_MIGRATIONS as $table => $migrationName) {
-            $this->assertArrayHasKey($migrationName, $migrations);
+        foreach (self::TABLES as $table) {
             $this->assertTrue(Schema::hasTable($table));
         }
 
-        foreach (array_reverse($migrations, true) as $migration) {
-            $migration->down();
+        $migration->down();
+
+        foreach (self::TABLES as $table) {
+            $this->assertFalse(Schema::hasTable($table), $table.' was not dropped.');
         }
 
-        foreach (self::TABLE_MIGRATIONS as $table => $migrationName) {
-            $this->assertFalse(Schema::hasTable($table), $migrationName.' did not drop its table.');
-        }
+        $migration->up();
 
-        foreach ($migrations as $migration) {
-            $migration->up();
-        }
-
-        foreach (array_keys(self::TABLE_MIGRATIONS) as $table) {
+        foreach (self::TABLES as $table) {
             $this->assertTrue(Schema::hasTable($table));
         }
 
         $this->assertExpectedColumns();
     }
 
-    public function test_split_migrations_compile_with_the_mariadb_schema_grammar(): void
+    public function test_baseline_migration_compiles_with_the_mariadb_schema_grammar(): void
     {
-        foreach (array_reverse($this->tableMigrations(), true) as $migration) {
-            $migration->down();
-        }
+        $migration = $this->baselineMigration();
+        $migration->down();
 
         config([
             'database.default' => 'mariadb',
@@ -62,44 +59,31 @@ class SkinMigrationTest extends TestCase
         DB::purge('mariadb');
 
         try {
-            $queries = DB::connection('mariadb')->pretend(function () {
-                foreach ($this->tableMigrations() as $migration) {
-                    $migration->up();
-                }
-            });
+            $queries = DB::connection('mariadb')->pretend(fn () => $migration->up());
         } finally {
             config(['database.default' => 'sqlite']);
             DB::purge('mariadb');
 
-            foreach ($this->tableMigrations() as $migration) {
-                $migration->up();
-            }
+            $migration->up();
         }
 
         $sql = implode("\n", array_column($queries, 'query'));
 
-        foreach (array_keys(self::TABLE_MIGRATIONS) as $table) {
+        foreach (self::TABLES as $table) {
             $this->assertStringContainsString("create table `{$table}`", strtolower($sql));
         }
 
         $this->assertStringContainsString('engine = innodb', strtolower($sql));
         $this->assertStringContainsString('foreign key (`user_id`) references `users` (`id`) on delete cascade', strtolower($sql));
+        $this->assertStringContainsString(
+            'alter table `skinsystem_sync_targets` add unique `skinsystem_sync_target_identity_unique`',
+            strtolower($sql),
+        );
     }
 
-    /**
-     * @return array<string, object>
-     */
-    private function tableMigrations(): array
+    private function baselineMigration(): object
     {
-        $migrations = [];
-
-        foreach (self::TABLE_MIGRATIONS as $migrationName) {
-            $migrations[$migrationName] = require $this->migrationDirectory().'/'.$migrationName;
-        }
-
-        $migrations[self::APPLICATION_TARGET_MIGRATION] = require $this->migrationDirectory().'/'.self::APPLICATION_TARGET_MIGRATION;
-
-        return $migrations;
+        return require $this->migrationDirectory().'/'.self::BASELINE_MIGRATION;
     }
 
     private function migrationDirectory(): string
@@ -109,41 +93,41 @@ class SkinMigrationTest extends TestCase
 
     private function assertExpectedColumns(): void
     {
-        $this->assertTrue(Schema::hasColumns('skinsystem_skins', [
-            'user_id',
-            'file',
-            'sha256',
-            'variant',
-            'resolved_variant',
-            'cape_id',
-            'delivery_strategy',
-            'revision',
-        ]));
-        $this->assertTrue(Schema::hasColumns('skinsystem_sync_states', [
-            'target_uuid',
-            'target_type',
-            'target_value',
-            'target_server_id',
-            'queued_command_id',
-            'dispatched_at',
-            'error',
-        ]));
-        $this->assertTrue(Schema::hasColumns('skinsystem_sync_targets', [
-            'target_type',
-            'target_value',
-            'clear_revision',
-            'queued_clear_command_id',
-            'clear_may_be_in_flight',
-        ]));
-        $this->assertTrue(Schema::hasColumns('skinsystem_mineskin_generations', [
-            'user_id',
-            'skin_revision',
-            'appearance_hash',
-            'status',
-            'job_id',
-            'result_uuid',
-            'result_url',
-            'next_poll_at',
-        ]));
+        $expectedColumns = [
+            'skinsystem_skins' => [
+                'id', 'user_id', 'file', 'sha256', 'variant', 'resolved_variant',
+                'cape_id', 'delivery_strategy', 'revision', 'created_at', 'updated_at',
+            ],
+            'skinsystem_skin_revisions' => [
+                'id', 'user_id', 'revision', 'file', 'sha256', 'resolved_variant',
+                'cape_id', 'delivery_strategy', 'created_at', 'updated_at',
+            ],
+            'skinsystem_sync_states' => [
+                'id', 'user_id', 'action', 'skin_revision', 'status', 'target_uuid',
+                'target_type', 'target_value', 'target_server_id', 'queued_command_id',
+                'dispatched_at', 'error', 'created_at', 'updated_at',
+            ],
+            'skinsystem_sync_targets' => [
+                'id', 'user_id', 'target_uuid', 'target_type', 'target_value',
+                'target_server_id', 'status', 'clear_revision', 'queued_clear_command_id',
+                'clear_may_be_in_flight', 'dispatched_at', 'error', 'created_at', 'updated_at',
+            ],
+            'skinsystem_saved_skins' => [
+                'id', 'user_id', 'name', 'file', 'sha256', 'variant', 'resolved_variant',
+                'cape_id', 'appearance_hash', 'created_at', 'updated_at',
+            ],
+            'skinsystem_mineskin_generations' => [
+                'id', 'user_id', 'skin_revision', 'appearance_hash', 'status', 'job_id',
+                'result_uuid', 'result_url', 'error', 'attempts', 'next_poll_at',
+                'last_polled_at', 'completed_at', 'created_at', 'updated_at',
+            ],
+        ];
+
+        foreach ($expectedColumns as $table => $columns) {
+            $this->assertTrue(
+                Schema::hasColumns($table, $columns),
+                $table.' does not contain the complete release schema.',
+            );
+        }
     }
 }
