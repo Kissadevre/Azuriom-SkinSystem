@@ -3,9 +3,10 @@
     "name": "SkinSystem",
     "description": "Upload, preview, and synchronize Minecraft skins from Azuriom.",
     "version": "0.2.0",
-    "url": "https://github.com/Casanaura/Azuriom-SkinSystem",
+    "url": "https://zibuu.net/projects/skinsystem",
     "authors": [
-        "Kissadere"
+        "Kissadere",
+        "Zibuu"
     ],
     "azuriom_api": "1.2.0",
     "games": [
