@@ -5,7 +5,8 @@
     "version": "0.2.0",
     "url": "https://zibuu.net/projects/skinsystem",
     "authors": [
-        "Kissadere"
+        "Kissadere",
+        "Zibuu"
     ],
     "azuriom_api": "1.2.0",
     "games": [
