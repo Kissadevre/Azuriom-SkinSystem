@@ -10,6 +10,7 @@ use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinSyncState;
 use Azuriom\Plugin\SkinSystem\Services\MineSkinCapeCatalog;
 use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
+use Azuriom\Plugin\SkinSystem\Support\SkinPagePresenter;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -21,6 +22,7 @@ class HomeController extends Controller
         Request $request,
         SkinSystemSettings $settings,
         MineSkinCapeCatalog $capeCatalog,
+        SkinPagePresenter $presenter,
     ) {
         $userId = $request->user()->getKey();
 
@@ -39,11 +41,14 @@ class HomeController extends Controller
         }
 
         $skin = Skin::query()->where('user_id', $userId)->first();
+        $syncState = SkinSyncState::query()->where('user_id', $userId)->first();
         $capeMap = collect($capes)->keyBy('uuid');
 
         return view('skinsystem::index', [
             'skin' => $skin,
-            'syncState' => SkinSyncState::query()->where('user_id', $userId)->first(),
+            'syncState' => $syncState,
+            'syncPresentation' => $presenter->sync($syncState),
+            'variantIcons' => $presenter->variantIcons(),
             'savedSkins' => $libraryEnabled
                 ? SavedSkin::query()->where('user_id', $userId)->latest()->get()
                 : collect(),

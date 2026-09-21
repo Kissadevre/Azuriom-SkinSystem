@@ -12,22 +12,6 @@
 @endpush
 
 @section('content')
-    @php
-        $syncStatus = $syncState?->status ?? \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_PENDING;
-        $syncBadgeClass = match($syncStatus) {
-            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_SUBMITTED => 'success',
-            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED => 'danger',
-            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_UNCERTAIN => 'warning',
-            \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_PENDING => 'info',
-            default => 'secondary',
-        };
-        $variantIcons = [
-            \Azuriom\Plugin\SkinSystem\Models\Skin::VARIANT_AUTO => 'bi-stars',
-            \Azuriom\Plugin\SkinSystem\Models\Skin::VARIANT_CLASSIC => 'bi-person-standing',
-            \Azuriom\Plugin\SkinSystem\Models\Skin::VARIANT_SLIM => 'bi-person',
-        ];
-    @endphp
-
     <div class="skinsystem-page">
         <div class="skinsystem-hero d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
             <div class="d-flex align-items-center gap-3">
@@ -42,22 +26,22 @@
 
             @if($skin)
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="badge rounded-pill text-bg-{{ $syncBadgeClass }} px-3 py-2">
+                    <span class="badge rounded-pill text-bg-{{ $syncPresentation['badge_class'] }} px-3 py-2">
                         <i class="bi bi-circle-fill me-1 skinsystem-status-dot" aria-hidden="true"></i>
-                        {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
+                        {{ trans('skinsystem::messages.sync.status.'.$syncPresentation['status']) }}
                     </span>
                 </div>
             @endif
         </div>
 
         @if(!$skin && $syncState?->action === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::ACTION_CLEAR)
-            <div class="alert alert-{{ $syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED ? 'danger' : ($syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_SUBMITTED ? 'success' : 'warning') }} shadow-sm mb-4">
+            <div class="alert alert-{{ $syncPresentation['clear_alert_class'] }} shadow-sm mb-4">
                 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <strong>{{ trans('skinsystem::messages.sync.clear_state_title') }}</strong>
-                            <span class="badge text-bg-{{ $syncBadgeClass }}">
-                                {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
+                            <span class="badge text-bg-{{ $syncPresentation['badge_class'] }}">
+                                {{ trans('skinsystem::messages.sync.status.'.$syncPresentation['status']) }}
                             </span>
                         </div>
                         <div>{{ trans('skinsystem::messages.sync.clear_state_help') }}</div>
@@ -473,8 +457,8 @@
                                             <span class="skinsystem-eyebrow">{{ trans('skinsystem::messages.current.eyebrow') }}</span>
                                             <h2 class="h5 mb-0">{{ trans('skinsystem::messages.current.title') }}</h2>
                                         </div>
-                                        <span class="badge rounded-pill text-bg-{{ $syncBadgeClass }}">
-                                            {{ trans('skinsystem::messages.sync.status.'.$syncStatus) }}
+                                        <span class="badge rounded-pill text-bg-{{ $syncPresentation['badge_class'] }}">
+                                            {{ trans('skinsystem::messages.sync.status.'.$syncPresentation['status']) }}
                                         </span>
                                     </div>
                                     <div class="skinsystem-meta-grid mb-3">
@@ -511,7 +495,7 @@
                                     </div>
 
                                     @if($syncState?->error)
-                                        <div class="alert alert-{{ $syncStatus === \Azuriom\Plugin\SkinSystem\Models\SkinSyncState::STATUS_FAILED ? 'danger' : 'warning' }} py-2 small">
+                                        <div class="alert alert-{{ $syncPresentation['error_alert_class'] }} py-2 small">
                                             {{ trans('skinsystem::messages.sync.errors.'.$syncState->error) }}
                                         </div>
                                     @endif
