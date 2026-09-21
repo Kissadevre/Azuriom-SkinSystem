@@ -2,8 +2,13 @@
     "id": "skinsystem",
     "name": "SkinSystem",
     "description": "Upload, preview, and synchronize Minecraft skins from Azuriom.",
+<<<<<<< HEAD
     "version": "0.2.0",
     "url": "https://zibuu.net/projects/skinsystem",
+=======
+    "version": "1.0.0",
+    "url": "https://zibuu.net/projects/azuriom-skinsystem",
+>>>>>>> 5e16ac8 (fix: Plugin url from plugin.json)
     "authors": [
         "Kissadere",
         "Zibuu"
