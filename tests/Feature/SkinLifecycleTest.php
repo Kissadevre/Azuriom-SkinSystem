@@ -12,6 +12,7 @@ use Azuriom\Plugin\SkinSystem\Services\SkinProcessor;
 use Azuriom\Plugin\SkinSystem\Services\SkinsRestorerCommandBuilder;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
 use Azuriom\Plugin\SkinSystem\Services\SkinSyncTargetRegistry;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\Fakes\ConfigurableSkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Tests\TestCase;
 use Illuminate\Http\UploadedFile;
@@ -24,7 +25,7 @@ class SkinLifecycleTest extends TestCase
     {
         $user = $this->createUser();
         $server = $this->createServer();
-        $settings = new ConfigurableSkinSystemSettings;
+        $settings = new ConfigurableSkinSystemSettings();
         $settings->selectedServerId = $server->id;
         $manager = new ManageSkin(
             app(SkinProcessor::class),
@@ -115,6 +116,41 @@ class SkinLifecycleTest extends TestCase
         Storage::disk('local')->assertExists($path);
 
         $this->assertSame(2, $tester->execute(['--days' => 0]));
+    }
+
+    public function test_same_appearance_creates_a_new_revision_when_the_target_changes(): void
+    {
+        $user = $this->createUser(name: 'Player_123');
+        $server = $this->createServer();
+        $settings = new ConfigurableSkinSystemSettings();
+        $settings->selectedServerId = $server->id;
+        $manager = new ManageSkin(
+            app(SkinProcessor::class),
+            app(SkinStorage::class),
+            $settings,
+            app(SkinsRestorerCommandBuilder::class),
+            app(SkinSyncTargetRegistry::class),
+        );
+
+        $first = $manager->store(
+            $user,
+            $this->uploadedSkin(60, 100, 180),
+            Skin::VARIANT_CLASSIC,
+        );
+        $settings->selectedApplicationTarget = SkinSystemSettings::TARGET_USERNAME;
+        $second = $manager->store(
+            $user,
+            $this->uploadedSkin(60, 100, 180),
+            Skin::VARIANT_CLASSIC,
+        );
+        $state = SkinSyncState::query()->sole();
+
+        $this->assertTrue($first['changed']);
+        $this->assertTrue($second['changed']);
+        $this->assertSame(2, $second['skin']->revision);
+        $this->assertSame(2, SkinRevision::query()->count());
+        $this->assertSame(SkinSystemSettings::TARGET_USERNAME, $state->target_type);
+        $this->assertSame('Player_123', $state->target_value);
     }
 
     private function uploadedSkin(int $red, int $green, int $blue): UploadedFile

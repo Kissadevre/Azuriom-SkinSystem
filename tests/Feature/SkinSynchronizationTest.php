@@ -27,7 +27,9 @@ class SkinSynchronizationTest extends TestCase
 {
     public function test_username_mode_is_snapshotted_for_set_and_clear_commands(): void
     {
-        $user = $this->createUser(name: 'Player_123');
+        $user = $this->createUser('not-a-uuid', 'Player_123');
+        $user->update(['game_id' => null]);
+        $user->refresh();
         $server = $this->createServer();
         $settings = $this->settings($server);
         $settings->selectedApplicationTarget = SkinSystemSettings::TARGET_USERNAME;
@@ -41,6 +43,7 @@ class SkinSynchronizationTest extends TestCase
 
         $this->assertSame(SkinSystemSettings::TARGET_USERNAME, $state->target_type);
         $this->assertSame('Player_123', $state->target_value);
+        $this->assertNull($state->target_uuid);
 
         $set = $this->synchronizer($settings)->apply($skin, $user);
 
@@ -56,6 +59,66 @@ class SkinSynchronizationTest extends TestCase
         $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $clear->status);
         $this->assertTrue(
             ServerCommand::query()->where('command', 'skin clear Player_123')->exists(),
+        );
+        $this->assertNull(SkinSyncTarget::query()->sole()->target_uuid);
+    }
+
+    public function test_an_undispatched_failure_adopts_the_current_target_settings_on_retry(): void
+    {
+        $user = $this->createUser('not-a-uuid', 'Player_123');
+        $server = $this->createServer();
+        $settings = $this->settings($server);
+        $stored = $this->manager($settings)->store(
+            $user,
+            $this->uploadedSkin(60, 120, 180),
+            Skin::VARIANT_CLASSIC,
+        );
+        $synchronizer = $this->synchronizer($settings);
+
+        $failed = $synchronizer->apply($stored['skin'], $user);
+
+        $this->assertSame(SkinSyncState::STATUS_FAILED, $failed->status);
+        $this->assertSame('invalid_game_id', $failed->error);
+        $this->assertNull(SkinSyncState::query()->sole()->dispatched_at);
+
+        $settings->selectedApplicationTarget = SkinSystemSettings::TARGET_USERNAME;
+        $retried = $synchronizer->apply($stored['skin'], $user);
+        $state = SkinSyncState::query()->sole();
+
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $retried->status);
+        $this->assertSame(SkinSystemSettings::TARGET_USERNAME, $state->target_type);
+        $this->assertSame('Player_123', $state->target_value);
+        $this->assertNull($state->target_uuid);
+        $this->assertStringEndsWith(
+            ' Player_123 classic',
+            ServerCommand::query()->findOrFail($state->queued_command_id)->command,
+        );
+    }
+
+    public function test_a_dispatched_operation_keeps_its_original_target_on_retry(): void
+    {
+        $user = $this->createUser(name: 'Player_123');
+        $server = $this->createServer();
+        $settings = $this->settings($server);
+        $stored = $this->manager($settings)->store(
+            $user,
+            $this->uploadedSkin(60, 120, 180),
+            Skin::VARIANT_CLASSIC,
+        );
+        $synchronizer = $this->synchronizer($settings);
+
+        $first = $synchronizer->apply($stored['skin'], $user);
+        $settings->selectedApplicationTarget = SkinSystemSettings::TARGET_USERNAME;
+        $second = $synchronizer->apply($stored['skin'], $user);
+        $state = SkinSyncState::query()->sole();
+
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $first->status);
+        $this->assertSame(SkinSyncState::STATUS_SUBMITTED, $second->status);
+        $this->assertSame(SkinSystemSettings::TARGET_UUID, $state->target_type);
+        $this->assertSame(self::PRIMARY_UUID, $state->target_value);
+        $this->assertStringEndsWith(
+            ' '.self::PRIMARY_UUID.' classic',
+            ServerCommand::query()->findOrFail($state->queued_command_id)->command,
         );
     }
 
@@ -400,6 +463,7 @@ class SkinSynchronizationTest extends TestCase
             'target_uuid' => self::PRIMARY_UUID,
             'target_server_id' => 4294967295,
             'status' => SkinSyncState::STATUS_PENDING,
+            'dispatched_at' => now(),
             'error' => null,
         ]);
         $missing = $synchronizer->apply($skin, $user->fresh());
@@ -471,7 +535,7 @@ class SkinSynchronizationTest extends TestCase
 
     private function settings(Server $server): ConfigurableSkinSystemSettings
     {
-        $settings = new ConfigurableSkinSystemSettings;
+        $settings = new ConfigurableSkinSystemSettings();
         $settings->selectedServerId = $server->id;
 
         return $settings;

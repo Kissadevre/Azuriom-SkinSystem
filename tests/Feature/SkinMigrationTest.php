@@ -10,6 +10,8 @@ class SkinMigrationTest extends TestCase
 {
     private const BASELINE_MIGRATION = '2026_09_01_000000_create_skinsystem_tables.php';
 
+    private const USERNAME_TARGET_MIGRATION = '2026_09_28_000000_allow_username_targets_without_uuid.php';
+
     private const TABLES = [
         'skinsystem_skins',
         'skinsystem_skin_revisions',
@@ -24,7 +26,7 @@ class SkinMigrationTest extends TestCase
         $migration = $this->baselineMigration();
 
         $this->assertSame(
-            [self::BASELINE_MIGRATION],
+            [self::BASELINE_MIGRATION, self::USERNAME_TARGET_MIGRATION],
             array_map('basename', glob($this->migrationDirectory().'/*.php')),
         );
 
@@ -79,6 +81,15 @@ class SkinMigrationTest extends TestCase
             'alter table `skinsystem_sync_targets` add unique `skinsystem_sync_target_identity_unique`',
             strtolower($sql),
         );
+    }
+
+    public function test_username_target_migration_makes_uuid_metadata_nullable(): void
+    {
+        $column = collect(Schema::getColumns('skinsystem_sync_targets'))
+            ->firstWhere('name', 'target_uuid');
+
+        $this->assertNotNull($column);
+        $this->assertTrue($column['nullable']);
     }
 
     private function baselineMigration(): object
