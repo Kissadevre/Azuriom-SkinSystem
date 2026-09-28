@@ -12,6 +12,8 @@ class SkinSystemSettings
 
     public const ENABLED_KEY = 'skinsystem.sync_enabled';
 
+    public const DEBUG_ENABLED_KEY = 'skinsystem.debug_enabled';
+
     public const SERVER_KEY = 'skinsystem.server_id';
 
     public const LIBRARY_LIMIT_KEY = 'skinsystem.library_limit';
@@ -57,6 +59,11 @@ class SkinSystemSettings
     public function enabled(): bool
     {
         return filter_var(setting(self::ENABLED_KEY, false), FILTER_VALIDATE_BOOL);
+    }
+
+    public function debugEnabled(): bool
+    {
+        return filter_var(setting(self::DEBUG_ENABLED_KEY, false), FILTER_VALIDATE_BOOL);
     }
 
     public function serverId(): ?int

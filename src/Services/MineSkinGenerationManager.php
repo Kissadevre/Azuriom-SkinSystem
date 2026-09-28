@@ -20,6 +20,12 @@ class MineSkinGenerationManager
 
     public function ensure(Skin $skin, bool $retryFailed = false): MineSkinGeneration
     {
+        app(SkinSystemDebugLogger::class)->debug('Ensuring MineSkin generation.', [
+            'user_id' => $skin->user_id,
+            'revision' => $skin->revision,
+            'retry_failed' => $retryFailed,
+            'cape_id' => $skin->cape_id,
+        ]);
         $appearanceHash = $this->appearanceHash($skin);
         $generation = MineSkinGeneration::query()->firstOrCreate(
             ['user_id' => $skin->user_id, 'skin_revision' => $skin->revision],
@@ -165,6 +171,14 @@ class MineSkinGenerationManager
                 'completed_at' => now(),
             ])->save();
 
+            app(SkinSystemDebugLogger::class)->debug('MineSkin generation completed.', [
+                'generation_id' => $generation->getKey(),
+                'user_id' => $generation->user_id,
+                'revision' => $generation->skin_revision,
+                'job_id' => $generation->job_id,
+                'attempts' => $generation->attempts,
+            ]);
+
             return $generation;
         }
 
@@ -175,6 +189,15 @@ class MineSkinGenerationManager
             'job_id' => $result['job_id'],
             'next_poll_at' => now()->addSeconds(self::POLL_DELAY_SECONDS),
         ])->save();
+
+        app(SkinSystemDebugLogger::class)->debug('MineSkin generation remains pending.', [
+            'generation_id' => $generation->getKey(),
+            'user_id' => $generation->user_id,
+            'revision' => $generation->skin_revision,
+            'status' => $generation->status,
+            'job_id' => $generation->job_id,
+            'attempts' => $generation->attempts,
+        ]);
 
         return $generation;
     }
@@ -197,6 +220,14 @@ class MineSkinGenerationManager
             'next_poll_at' => now()->addSeconds(self::RETRY_DELAY_SECONDS),
         ])->save();
 
+        app(SkinSystemDebugLogger::class)->warning('MineSkin generation will be retried.', [
+            'generation_id' => $generation->getKey(),
+            'user_id' => $generation->user_id,
+            'revision' => $generation->skin_revision,
+            'error' => $error,
+            'attempts' => $generation->attempts,
+        ]);
+
         return $generation;
     }
 
@@ -208,6 +239,14 @@ class MineSkinGenerationManager
             'next_poll_at' => null,
             'last_polled_at' => now(),
         ])->save();
+
+        app(SkinSystemDebugLogger::class)->error('MineSkin generation failed.', [
+            'generation_id' => $generation->getKey(),
+            'user_id' => $generation->user_id,
+            'revision' => $generation->skin_revision,
+            'error' => $error,
+            'attempts' => $generation->attempts,
+        ]);
 
         return $generation;
     }

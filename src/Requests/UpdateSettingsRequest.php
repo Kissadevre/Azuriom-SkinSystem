@@ -26,6 +26,7 @@ class UpdateSettingsRequest extends FormRequest
     {
         return [
             'sync_enabled' => ['required', 'boolean'],
+            'debug_enabled' => ['required', 'boolean'],
             'delivery_mode' => ['required', Rule::in(SkinSystemSettings::deliveryModes())],
             'application_target' => ['required', Rule::in(SkinSystemSettings::applicationTargets())],
             'mineskin_api_key' => ['nullable', 'string', 'max:512'],

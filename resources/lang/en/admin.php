@@ -4,6 +4,13 @@ return [
     'title' => 'SkinSystem',
     'description' => 'Connect Azuriom skin uploads to one authoritative SkinsRestorer server.',
     'updated' => 'SkinSystem settings were saved.',
+    'debug' => [
+        'title' => 'Debug mode',
+        'description' => 'Record detailed technical activity to help diagnose SkinSystem behavior and failures.',
+        'enabled' => 'Enable debug logging',
+        'enabled_help' => 'Logs requests, synchronization decisions, storage operations, MineSkin activity, and failures. API keys and credentials are redacted.',
+        'warning' => 'Enable this only while diagnosing an issue. Logs are kept for 14 days at',
+    ],
     'nav' => [
         'settings' => 'Settings',
         'information' => 'Information',
