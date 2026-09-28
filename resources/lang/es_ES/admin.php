@@ -4,6 +4,13 @@ return [
     'title' => 'SkinSystem',
     'description' => 'Conecta las skins subidas en Azuriom con un servidor autoritativo de SkinsRestorer.',
     'updated' => 'La configuración de SkinSystem se guardó correctamente.',
+    'debug' => [
+        'title' => 'Modo debug',
+        'description' => 'Registra actividad técnica detallada para diagnosticar el comportamiento y los errores de SkinSystem.',
+        'enabled' => 'Activar registros de depuración',
+        'enabled_help' => 'Registra solicitudes, decisiones de sincronización, operaciones de almacenamiento, actividad de MineSkin y errores. Las claves API y credenciales se ocultan.',
+        'warning' => 'Actívalo solamente mientras diagnosticas un problema. Los registros se conservan durante 14 días en',
+    ],
     'nav' => [
         'settings' => 'Ajustes',
         'information' => 'Información',

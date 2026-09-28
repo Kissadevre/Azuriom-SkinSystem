@@ -7,6 +7,7 @@ use Azuriom\Plugin\SkinSystem\Models\SavedSkin;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Models\SkinRevision;
 use Azuriom\Plugin\SkinSystem\Services\SkinStorage;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemDebugLogger;
 use Azuriom\Plugin\SkinSystem\Services\UserSkinLock;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
@@ -21,8 +22,11 @@ class CleanupSkinRevisions extends Command
 
     protected $description = 'Delete expired SkinSystem revisions and unreferenced PNG blobs.';
 
-    public function handle(SkinStorage $storage, UserSkinLock $lock): int
-    {
+    public function handle(
+        SkinStorage $storage,
+        UserSkinLock $lock,
+        SkinSystemDebugLogger $logger,
+    ): int {
         $retentionDays = filter_var($this->option('days'), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1, 'max_range' => 3650],
         ]);
@@ -34,6 +38,10 @@ class CleanupSkinRevisions extends Command
         }
 
         $cutoff = now()->subDays($retentionDays);
+        $logger->debug('Skin revision cleanup started.', [
+            'retention_days' => $retentionDays,
+            'cutoff' => $cutoff->toIso8601String(),
+        ]);
         $deletedRevisions = 0;
         $deletedFiles = 0;
         $busyUsers = 0;
@@ -127,6 +135,12 @@ class CleanupSkinRevisions extends Command
         if ($busyUsers > 0) {
             $this->warn("Skipped {$busyUsers} busy skin operations; the next scheduled run will retry them.");
         }
+
+        $logger->info('Skin revision cleanup completed.', [
+            'deleted_revisions' => $deletedRevisions,
+            'deleted_files' => $deletedFiles,
+            'busy_users' => $busyUsers,
+        ]);
 
         return self::SUCCESS;
     }

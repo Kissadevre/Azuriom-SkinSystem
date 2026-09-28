@@ -73,6 +73,40 @@
 
         <section class="card skinsystem-admin-card mb-4">
             <div class="card-header skinsystem-admin-card-header">
+                <span class="skinsystem-admin-icon text-warning bg-warning bg-opacity-10">
+                    <i class="bi bi-bug" aria-hidden="true"></i>
+                </span>
+                <div>
+                    <h2 class="h5 mb-1">{{ trans('skinsystem::admin.debug.title') }}</h2>
+                    <p class="text-muted small mb-0">{{ trans('skinsystem::admin.debug.description') }}</p>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="skinsystem-setting-row">
+                    <label for="debugEnabled" class="mb-0">
+                        <span class="d-block fw-semibold">{{ trans('skinsystem::admin.debug.enabled') }}</span>
+                        <small class="text-muted">{{ trans('skinsystem::admin.debug.enabled_help') }}</small>
+                    </label>
+                    <input type="hidden" name="debug_enabled" value="0">
+                    <div class="form-check form-switch fs-4 mb-0">
+                        <input class="form-check-input @error('debug_enabled') is-invalid @enderror"
+                               type="checkbox"
+                               name="debug_enabled"
+                               value="1"
+                               id="debugEnabled"
+                               @checked(old('debug_enabled', $debugEnabled))>
+                    </div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>
+                    {{ trans('skinsystem::admin.debug.warning') }}
+                    <code>storage/logs/skinsystem-debug-YYYY-MM-DD.log</code>
+                </div>
+            </div>
+        </section>
+
+        <section class="card skinsystem-admin-card mb-4">
+            <div class="card-header skinsystem-admin-card-header">
                 <span class="skinsystem-admin-icon text-info bg-info bg-opacity-10">
                     <i class="bi bi-signpost-split" aria-hidden="true"></i>
                 </span>

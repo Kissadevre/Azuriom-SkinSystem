@@ -30,6 +30,12 @@ class SkinSynchronizer
      */
     public function apply(Skin $skin, User $user, ?string $sourceUrl = null): SyncResult
     {
+        app(SkinSystemDebugLogger::class)->debug('Starting skin synchronization.', [
+            'user_id' => $user->getKey(),
+            'skin_id' => $skin->getKey(),
+            'revision' => $skin->revision,
+            'delivery_source' => $sourceUrl === null ? 'skinsystem' : 'mineskin',
+        ]);
         $state = $this->currentSetState($skin, $user);
 
         if ($state === null) {
@@ -70,6 +76,10 @@ class SkinSynchronizer
      */
     public function clear(User $user, ?int $skinRevision = null): SyncResult
     {
+        app(SkinSystemDebugLogger::class)->debug('Starting skin clear synchronization.', [
+            'user_id' => $user->getKey(),
+            'revision' => $skinRevision,
+        ]);
         $stateQuery = SkinSyncState::query()
             ->where('user_id', $user->getKey())
             ->where('action', SkinSyncState::ACTION_CLEAR);
@@ -337,7 +347,7 @@ class SkinSynchronizer
                 $current = $this->lockCurrentOperation($state);
 
                 if ($current === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $this->forgetQueuedSet($current, $user);
@@ -356,7 +366,7 @@ class SkinSynchronizer
 
                 if ($current->queued_command_id !== null
                     && $this->operationQuery($current)->update(['queued_command_id' => null]) !== 1) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 return $target->clear_may_be_in_flight;
@@ -391,7 +401,7 @@ class SkinSynchronizer
                 $current = $this->lockCurrentOperation($state);
 
                 if ($current === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $this->forgetQueuedSet($current, $user);
@@ -431,7 +441,7 @@ class SkinSynchronizer
                 ];
 
                 if ($this->operationQuery($current)->update($attributes) !== 1) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 return $attributes;
@@ -504,7 +514,7 @@ class SkinSynchronizer
                 $current = $this->lockCurrentOperation($state);
 
                 if ($current === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $targets = $this->targets->ensureClear(
@@ -652,13 +662,13 @@ class SkinSynchronizer
                 $currentState = $this->lockCurrentOperation($state);
 
                 if ($currentState === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $currentTarget = $this->lockCurrentClearTarget($target, $currentState);
 
                 if ($currentTarget === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $this->targets->forgetQueuedClear($currentTarget);
@@ -708,13 +718,13 @@ class SkinSynchronizer
                 $currentState = $this->lockCurrentOperation($state);
 
                 if ($currentState === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $currentTarget = $this->lockCurrentClearTarget($target, $currentState);
 
                 if ($currentTarget === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $this->targets->forgetQueuedClear($currentTarget);
@@ -781,13 +791,13 @@ class SkinSynchronizer
                 $currentState = $this->lockCurrentOperation($state);
 
                 if ($currentState === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $currentTarget = $this->lockCurrentClearTarget($target, $currentState);
 
                 if ($currentTarget === null) {
-                    throw new StaleSyncOperationException;
+                    throw new StaleSyncOperationException();
                 }
 
                 $attributes = [
@@ -915,10 +925,28 @@ class SkinSynchronizer
         $stillCurrent = $updated === 1 || $this->operationIsCurrent($state);
 
         if (! $stillCurrent) {
+            app(SkinSystemDebugLogger::class)->warning('Synchronization result became stale.', [
+                'user_id' => $state->user_id,
+                'action' => $state->action,
+                'revision' => $state->skin_revision,
+                'requested_status' => $status,
+            ]);
+
             return new SyncResult(SyncResult::STALE, 'stale_revision');
         }
 
         $state->forceFill($attributes);
+
+        app(SkinSystemDebugLogger::class)->debug('Synchronization state recorded.', [
+            'user_id' => $state->user_id,
+            'action' => $state->action,
+            'revision' => $state->skin_revision,
+            'status' => $status,
+            'error' => $error,
+            'attempted' => $attempted,
+            'target_server_id' => $state->target_server_id,
+            'target_type' => $state->target_type,
+        ]);
 
         return new SyncResult($status, $error);
     }

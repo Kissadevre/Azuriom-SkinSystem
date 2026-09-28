@@ -36,6 +36,13 @@ class ManageSkin
         string $variant,
         ?string $capeId = null,
     ): array {
+        $this->debug('Processing active skin upload.', [
+            'user_id' => $user->getKey(),
+            'original_name' => $file->getClientOriginalName(),
+            'size_bytes' => $file->getSize(),
+            'requested_variant' => $variant,
+            'cape_id' => $capeId,
+        ]);
         $processed = $this->processor->process($file);
 
         if ($processed['height'] === 32 && $variant === Skin::VARIANT_SLIM) {
@@ -89,6 +96,14 @@ class ManageSkin
         ?int $replacementId = null,
         ?string $capeId = null,
     ): SavedSkin {
+        $this->debug('Processing saved skin upload.', [
+            'user_id' => $user->getKey(),
+            'original_name' => $file->getClientOriginalName(),
+            'size_bytes' => $file->getSize(),
+            'requested_variant' => $variant,
+            'replacement_id' => $replacementId,
+            'cape_id' => $capeId,
+        ]);
         $processed = $this->processor->process($file);
 
         if ($processed['height'] === 32 && $variant === Skin::VARIANT_SLIM) {
@@ -163,6 +178,11 @@ class ManageSkin
      */
     public function activate(User $user, SavedSkin $savedSkin): array
     {
+        $this->debug('Activating a saved skin.', [
+            'user_id' => $user->getKey(),
+            'saved_skin_id' => $savedSkin->getKey(),
+        ]);
+
         return DB::transaction(function () use ($user, $savedSkin) {
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
@@ -184,6 +204,11 @@ class ManageSkin
 
     public function deleteSaved(User $user, SavedSkin $savedSkin): void
     {
+        $this->debug('Deleting a saved skin.', [
+            'user_id' => $user->getKey(),
+            'saved_skin_id' => $savedSkin->getKey(),
+        ]);
+
         DB::transaction(function () use ($user, $savedSkin) {
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
@@ -202,6 +227,8 @@ class ManageSkin
      */
     public function delete(User $user): ?SkinSyncState
     {
+        $this->debug('Deleting the active skin.', ['user_id' => $user->getKey()]);
+
         return DB::transaction(function () use ($user) {
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
@@ -287,6 +314,12 @@ class ManageSkin
             && $skin->resolved_variant === $resolvedVariant
             && $skin->cape_id === $capeId
             && $skin->delivery_strategy === $deliveryStrategy) {
+            $this->debug('Active skin is unchanged.', [
+                'user_id' => $user->getKey(),
+                'skin_id' => $skin->getKey(),
+                'revision' => $skin->revision,
+            ]);
+
             return ['skin' => $skin, 'changed' => false];
         }
 
@@ -358,6 +391,16 @@ class ManageSkin
             ],
         );
 
+        $this->debug('Active skin revision persisted.', [
+            'user_id' => $user->getKey(),
+            'skin_id' => $skin->getKey(),
+            'revision' => $skin->revision,
+            'resolved_variant' => $resolvedVariant,
+            'delivery_strategy' => $deliveryStrategy,
+            'target_server_id' => $targetServerId,
+            'target_type' => $targetType,
+        ]);
+
         return ['skin' => $skin, 'changed' => true];
     }
 
@@ -391,5 +434,10 @@ class ManageSkin
                 fn ($query) => $query->where('server_id', $state->target_server_id),
             )
             ->delete();
+    }
+
+    private function debug(string $message, array $context = []): void
+    {
+        app(SkinSystemDebugLogger::class)->debug($message, $context);
     }
 }

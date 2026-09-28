@@ -17,6 +17,7 @@ class AdminSettingsValidationTest extends TestCase
         foreach (['letters', '10skins', '1.5', '-1', '0'] as $value) {
             $request = UpdateSettingsRequest::create('/', 'PUT', [
                 'sync_enabled' => '0',
+                'debug_enabled' => '0',
                 'delivery_mode' => 'direct',
                 'application_target' => SkinSystemSettings::TARGET_UUID,
                 'remove_mineskin_api_key' => '0',
@@ -36,6 +37,7 @@ class AdminSettingsValidationTest extends TestCase
         foreach (['1', '10', '100'] as $value) {
             $request = UpdateSettingsRequest::create('/', 'PUT', [
                 'sync_enabled' => '0',
+                'debug_enabled' => '0',
                 'delivery_mode' => 'direct',
                 'application_target' => SkinSystemSettings::TARGET_UUID,
                 'remove_mineskin_api_key' => '0',
@@ -154,6 +156,27 @@ class AdminSettingsValidationTest extends TestCase
         $this->assertSame('bi bi-palette-fill', $navigation->invoke($provider)['skinsystem']['icon']);
     }
 
+    public function test_debug_mode_is_disabled_by_default_and_accepts_only_boolean_values(): void
+    {
+        $settings = app(SkinSystemSettings::class);
+
+        $this->assertFalse($settings->debugEnabled());
+
+        foreach (['0', '1'] as $value) {
+            $request = $this->settingsRequest(['debug_enabled' => $value]);
+
+            $this->assertFalse(Validator::make($request->all(), $request->rules())->fails());
+        }
+
+        $request = $this->settingsRequest(['debug_enabled' => 'verbose']);
+
+        $this->assertTrue(Validator::make($request->all(), $request->rules())->fails());
+
+        Setting::updateSettings(SkinSystemSettings::DEBUG_ENABLED_KEY, true);
+
+        $this->assertTrue($settings->debugEnabled());
+    }
+
     public function test_user_menu_icon_rejects_unsafe_values_and_falls_back_defensively(): void
     {
         foreach (['bi-person text-danger', 'person-bounding-box', 'bi-PERSON', 'bi-person<script>'] as $icon) {
@@ -174,6 +197,7 @@ class AdminSettingsValidationTest extends TestCase
     {
         $request = UpdateSettingsRequest::create('/', 'PUT', array_merge([
             'sync_enabled' => '0',
+            'debug_enabled' => '0',
             'delivery_mode' => 'direct',
             'application_target' => SkinSystemSettings::TARGET_UUID,
             'remove_mineskin_api_key' => '0',

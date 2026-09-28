@@ -5,6 +5,7 @@ namespace Azuriom\Plugin\SkinSystem\Commands;
 use Azuriom\Plugin\SkinSystem\Models\MineSkinGeneration;
 use Azuriom\Plugin\SkinSystem\Models\Skin;
 use Azuriom\Plugin\SkinSystem\Services\SkinDeliveryService;
+use Azuriom\Plugin\SkinSystem\Services\SkinSystemDebugLogger;
 use Azuriom\Plugin\SkinSystem\Services\SkinSystemSettings;
 use Azuriom\Plugin\SkinSystem\Services\UserSkinLock;
 use Illuminate\Console\Command;
@@ -17,8 +18,11 @@ class ProcessMineSkinGenerations extends Command
 
     protected $description = 'Poll due MineSkin jobs and submit completed appearances to SkinsRestorer.';
 
-    public function handle(SkinDeliveryService $delivery, UserSkinLock $lock): int
-    {
+    public function handle(
+        SkinDeliveryService $delivery,
+        UserSkinLock $lock,
+        SkinSystemDebugLogger $logger,
+    ): int {
         $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1, 'max_range' => 250],
         ]);
@@ -41,6 +45,11 @@ class ProcessMineSkinGenerations extends Command
             ->orderBy('id')
             ->limit($limit)
             ->get();
+
+        $logger->debug('MineSkin processor started.', [
+            'limit' => $limit,
+            'due_jobs' => $generations->count(),
+        ]);
 
         $processed = 0;
         $busy = 0;
@@ -69,12 +78,19 @@ class ProcessMineSkinGenerations extends Command
             } catch (LockTimeoutException) {
                 $busy++;
             } catch (Throwable $exception) {
+                $logger->error('MineSkin processor encountered an unexpected failure.', [
+                    'generation_id' => $generation->getKey(),
+                    'user_id' => $generation->user_id,
+                    'revision' => $generation->skin_revision,
+                    'exception' => $exception,
+                ]);
                 report($exception);
                 $failed++;
             }
         }
 
         $this->info("Processed {$processed} MineSkin jobs; {$busy} busy and {$failed} failed unexpectedly.");
+        $logger->info('MineSkin processor completed.', compact('processed', 'busy', 'failed'));
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
