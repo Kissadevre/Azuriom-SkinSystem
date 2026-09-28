@@ -46,6 +46,12 @@ class SkinSynchronizer
             return $this->record($state, SkinSyncState::STATUS_NOT_CONFIGURED, 'sync_disabled');
         }
 
+        $state = $this->refreshUndispatchedTarget($state, $user);
+
+        if ($state instanceof SyncResult) {
+            return $state;
+        }
+
         $target = $this->resolveTarget($state, $user);
 
         if ($target instanceof SyncResult) {
@@ -162,7 +168,7 @@ class SkinSynchronizer
     /**
      * Resolve immutable dispatch targets, binding missing legacy values once.
      *
-     * @return array{uuid: string, type: string, value: string, server: Server}|SyncResult
+     * @return array{uuid: string|null, type: string, value: string, server: Server}|SyncResult
      */
     private function resolveTarget(SkinSyncState $state, User $user): array|SyncResult
     {
@@ -187,13 +193,19 @@ class SkinSynchronizer
     }
 
     /**
-     * @return array{uuid: string, type: string, value: string, server_id: int}|SyncResult
+     * @return array{uuid: string|null, type: string, value: string, server_id: int}|SyncResult
      */
     private function resolveTargetIdentity(SkinSyncState $state, User $user): array|SyncResult
     {
+        $targetType = $state->target_type ?: $this->settings->applicationTarget();
+
+        if (! in_array($targetType, SkinSystemSettings::applicationTargets(), true)) {
+            return $this->record($state, SkinSyncState::STATUS_FAILED, 'invalid_application_target');
+        }
+
         $targetUuid = $state->target_uuid;
 
-        if ($targetUuid === null) {
+        if ($targetType === SkinSystemSettings::TARGET_UUID && $targetUuid === null) {
             $targetUuid = $this->commands->canonicalUuid($user->game_id);
 
             if ($targetUuid === null) {
@@ -205,14 +217,15 @@ class SkinSynchronizer
             }
         }
 
-        if ($this->commands->canonicalUuid($targetUuid) !== $targetUuid) {
+        if ($targetType === SkinSystemSettings::TARGET_UUID
+            && $this->commands->canonicalUuid($targetUuid) !== $targetUuid) {
             return $this->record($state, SkinSyncState::STATUS_FAILED, 'invalid_game_id');
         }
 
-        $targetType = $state->target_type ?: $this->settings->applicationTarget();
-
-        if (! in_array($targetType, SkinSystemSettings::applicationTargets(), true)) {
-            return $this->record($state, SkinSyncState::STATUS_FAILED, 'invalid_application_target');
+        if ($targetType === SkinSystemSettings::TARGET_USERNAME
+            && $targetUuid !== null
+            && $this->commands->canonicalUuid($targetUuid) !== $targetUuid) {
+            $targetUuid = null;
         }
 
         $targetValue = $state->target_value;
@@ -262,6 +275,54 @@ class SkinSynchronizer
             'value' => $targetValue,
             'server_id' => $targetServerId,
         ];
+    }
+
+    /**
+     * An operation that never crossed a dispatch boundary may safely adopt the
+     * current destination settings. Submitted and uncertain operations retain
+     * their immutable snapshots so compensating clears remain reliable.
+     */
+    private function refreshUndispatchedTarget(
+        SkinSyncState $state,
+        User $user,
+    ): SkinSyncState|SyncResult {
+        try {
+            $current = DB::transaction(function () use ($state, $user) {
+                $this->lockUser($user);
+                $current = $this->lockCurrentOperation($state);
+
+                if ($current === null) {
+                    throw new StaleSyncOperationException();
+                }
+
+                if ($current->queued_command_id !== null || $current->dispatched_at !== null) {
+                    return $current;
+                }
+
+                $targetType = $this->settings->applicationTarget();
+                $targetUuid = $this->commands->canonicalUuid($user->game_id);
+                $targetValue = $targetType === SkinSystemSettings::TARGET_USERNAME
+                    ? $this->commands->canonicalUsername($user->name)
+                    : $targetUuid;
+
+                $current->forceFill([
+                    'target_uuid' => $targetUuid,
+                    'target_type' => $targetType,
+                    'target_value' => $targetValue,
+                    'target_server_id' => $this->settings->serverId(),
+                    'status' => SkinSyncState::STATUS_PENDING,
+                    'error' => null,
+                ])->save();
+
+                return $current;
+            }, self::TRANSACTION_ATTEMPTS);
+        } catch (StaleSyncOperationException) {
+            return new SyncResult(SyncResult::STALE, 'stale_revision');
+        }
+
+        $state->forceFill($current->getAttributes());
+
+        return $state;
     }
 
     private function bindMissingTarget(SkinSyncState $state, string $attribute, string|int $value): bool
@@ -550,7 +611,8 @@ class SkinSynchronizer
         SkinSyncTarget $target,
         User $user,
     ): SyncResult {
-        if ($this->commands->canonicalUuid($target->target_uuid) !== $target->target_uuid) {
+        if ($target->target_type === SkinSystemSettings::TARGET_UUID
+            && $this->commands->canonicalUuid($target->target_uuid) !== $target->target_uuid) {
             return $this->recordClearTarget(
                 $state,
                 $target,
@@ -977,9 +1039,7 @@ class SkinSynchronizer
         ?string $targetType,
         ?string $targetValue,
     ): bool {
-        if ($uuid === null
-            || $this->commands->canonicalUuid($uuid) !== $uuid
-            || $serverId === null
+        if ($serverId === null
             || $serverId < 1
             || $serverId > SkinSystemSettings::MAX_DATABASE_ID) {
             return false;
@@ -988,6 +1048,9 @@ class SkinSynchronizer
         try {
             return $targetType !== null
                 && $targetValue !== null
+                && ($targetType === SkinSystemSettings::TARGET_UUID
+                    ? $uuid !== null && $this->commands->canonicalUuid($uuid) === $uuid
+                    : $uuid === null || $this->commands->canonicalUuid($uuid) === $uuid)
                 && $this->commands->validatedTarget($targetValue, $targetType) === $targetValue;
         } catch (SyncPreconditionException) {
             return false;

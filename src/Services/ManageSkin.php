@@ -307,13 +307,21 @@ class ManageSkin
 
         $skin = Skin::query()->where('user_id', $user->getKey())->first();
         $deliveryStrategy = $this->settings->deliveryStrategyFor($capeId);
+        $targetUuid = $this->commands->canonicalUuid($user->game_id);
+        $targetServerId = $this->settings->serverId();
+        $targetType = $this->settings->applicationTarget();
+        $targetValue = $this->commandTarget($user, $targetType);
 
         if ($skin !== null
             && hash_equals($skin->sha256, $sha256)
             && $skin->variant === $variant
             && $skin->resolved_variant === $resolvedVariant
             && $skin->cape_id === $capeId
-            && $skin->delivery_strategy === $deliveryStrategy) {
+            && $skin->delivery_strategy === $deliveryStrategy
+            && $previousState?->target_uuid === $targetUuid
+            && $previousState?->target_server_id === $targetServerId
+            && $previousState?->target_type === $targetType
+            && $previousState?->target_value === $targetValue) {
             $this->debug('Active skin is unchanged.', [
                 'user_id' => $user->getKey(),
                 'skin_id' => $skin->getKey(),
@@ -363,10 +371,6 @@ class ManageSkin
         }
 
         $this->forgetQueuedCommand($user, $previousState);
-        $targetUuid = $this->commands->canonicalUuid($user->game_id);
-        $targetServerId = $this->settings->serverId();
-        $targetType = $this->settings->applicationTarget();
-        $targetValue = $this->commandTarget($user, $targetType);
         $this->targets->activate(
             (int) $user->getKey(),
             $targetUuid,

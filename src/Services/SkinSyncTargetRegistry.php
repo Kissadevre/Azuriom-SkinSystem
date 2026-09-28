@@ -203,8 +203,11 @@ class SkinSyncTargetRegistry
         string $targetType,
         ?string $targetValue,
     ): bool {
-        return $targetUuid !== null
-            && $this->commands->canonicalUuid($targetUuid) === $targetUuid
+        $validUuid = $targetType === SkinSystemSettings::TARGET_UUID
+            ? $targetUuid !== null && $this->commands->canonicalUuid($targetUuid) === $targetUuid
+            : $targetUuid === null || $this->commands->canonicalUuid($targetUuid) === $targetUuid;
+
+        return $validUuid
             && $targetValue !== null
             && $this->validCommandTarget($targetValue, $targetType)
             && $targetServerId !== null

@@ -6,11 +6,11 @@ use Azuriom\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A UUID/server pair that may currently hold a SkinSystem-managed selection.
+ * A command target/server pair that may currently hold a SkinSystem-managed selection.
  *
  * @property int $id
  * @property int $user_id
- * @property string $target_uuid
+ * @property string|null $target_uuid Optional canonical account UUID metadata
  * @property string $target_type
  * @property string $target_value
  * @property int $target_server_id
