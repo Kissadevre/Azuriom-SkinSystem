@@ -29,8 +29,13 @@ class SkinImageController extends Controller
 
         abort_unless($storage->disk()->exists($path), 404);
 
+        // MineSkin validates the URL with a HEAD request and rejects responses
+        // without Content-Length. Web servers that gzip image/png drop that
+        // header, so the PNG (already compressed) is marked as not encoded,
+        // which makes nginx's gzip filter skip it.
         return $storage->disk()->response($path, 'skin.png', [
             'Content-Type' => 'image/png',
+            'Content-Encoding' => 'identity',
             'Content-Disposition' => 'inline; filename="skin.png"',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'public, max-age=31536000, immutable',

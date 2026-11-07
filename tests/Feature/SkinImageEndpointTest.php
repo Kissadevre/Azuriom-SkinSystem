@@ -28,6 +28,8 @@ class SkinImageEndpointTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'image/png');
+        $response->assertHeader('Content-Encoding', 'identity');
+        $response->assertHeader('Content-Length', (string) strlen($contents));
         $this->assertStringContainsString('public', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('max-age=31536000', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('immutable', (string) $response->headers->get('Cache-Control'));

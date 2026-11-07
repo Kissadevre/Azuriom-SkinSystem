@@ -70,11 +70,12 @@ A normal return means **submitted**, not confirmed as applied. AzLink does not p
 6. Choose Direct, MineSkin, or Hybrid delivery. MineSkin mode requires a verified global API key; Hybrid uses MineSkin only for appearances with a selected cape.
 7. To offer capes, configure a MineSkin key with the capes grant and assign `skinsystem.cape` only to eligible roles. The key is encrypted and is never sent to a player's browser.
 8. Configure Azuriom's canonical `APP_URL` as a publicly reachable HTTPS origin when Direct or Hybrid delivery can be used. The generated URL must remain within SkinsRestorer's 266-byte URL limit.
-9. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, allow the Azuriom HTTPS origin for Direct delivery and MineSkin's result origin for MineSkin delivery.
-10. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
-11. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
-12. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
-13. Run Azuriom's scheduler every minute. It invokes `skinsystem:mineskin:process` for pending jobs and `skinsystem:cleanup` daily; both commands can also be run manually.
+9. Do not let the web server or a CDN compress `image/png` (for example, remove it from nginx `gzip_types`). MineSkin validates skin URLs with a `HEAD` request and rejects responses without `Content-Length`, which SkinsRestorer reports as "The skin URL or file format is invalid". The endpoint sends `Content-Encoding: identity` so nginx's gzip filter skips it, but other proxies may ignore that hint.
+10. If `commands.restrictSkinUrls.enabled` is enabled in SkinsRestorer, allow the Azuriom HTTPS origin for Direct delivery and MineSkin's result origin for MineSkin delivery.
+11. If the old Skin API plugin remains installed, disable AzLink's legacy `skinrestorer-integration` listener so it cannot overwrite SkinSystem on player join.
+12. With BungeeCord or Velocity, dispatch to the proxy-side instance where SkinsRestorer is authoritative, not an arbitrary backend.
+13. On multi-node Azuriom deployments, configure a shared atomic-lock cache such as Redis or database. The default file cache is suitable for a single shared web installation.
+14. Run Azuriom's scheduler every minute. It invokes `skinsystem:mineskin:process` for pending jobs and `skinsystem:cleanup` daily; both commands can also be run manually.
 
 Saving an HTTP or otherwise unreachable `APP_URL` is allowed so the site can be configured in stages. Uploads remain local and their synchronization state records the precise precondition failure until configuration is corrected.
 
